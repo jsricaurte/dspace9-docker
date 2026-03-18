@@ -16,8 +16,6 @@ El repositorio incluye el `docker-compose.yml` definitivo con los errores de pro
 
 ---
 
----
-
 ## ¿Qué es DSpace?
 
 DSpace es el software de repositorio institucional más usado en universidades
@@ -57,11 +55,34 @@ Navegador del usuario
 
 ## Instalación rápida (si ya tienes Docker instalado)
 
+### Opción A — Con Git instalado
+
 ```bash
 # 1. Clonar
 git clone https://github.com/jsricaurte/dspace9-docker.git ~/dspace9
 cd ~/dspace9
+```
 
+### Opción B — Sin Git (solo wget)
+
+Si tienes Docker pero no tienes Git, descarga el repositorio como ZIP directamente:
+
+```bash
+# 1. Descargar y descomprimir
+cd ~
+wget https://github.com/jsricaurte/dspace9-docker/archive/refs/heads/main.zip
+unzip main.zip
+mv dspace9-docker-main dspace9
+cd dspace9
+```
+
+> Si no tienes `wget` ni `unzip`: `sudo apt install -y wget unzip`
+
+---
+
+### Pasos comunes (para ambas opciones)
+
+```bash
 # 2. Configurar
 cp .env.example .env
 nano .env              # ← edita IP, contraseña y nombre del repositorio
