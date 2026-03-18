@@ -7,22 +7,26 @@
 
 ## Paso 1 — Descargar los archivos al servidor
 
-Conéctate al servidor por SSH y ejecuta:
+### Opción A — Con Git instalado
 
 ```bash
-git clone https://github.com/TU_USUARIO/dspace9-docker.git ~/dspace9
+git clone https://github.com/jsricaurte/dspace9-docker.git ~/dspace9
 cd ~/dspace9
 ```
 
-> Si no tienes Git o prefieres copiar los archivos manualmente desde tu computador:
-> ```bash
-> # Desde TU computador (no del servidor):
-> scp -r dspace9-docker/ tuusuario@IP_DEL_SERVIDOR:~/dspace9
->
-> # Luego conéctate al servidor:
-> ssh tuusuario@IP_DEL_SERVIDOR
-> cd ~/dspace9
-> ```
+### Opción B — Sin Git (solo wget)
+
+Si tienes Docker instalado pero no Git, descarga el repositorio como ZIP:
+
+```bash
+cd ~
+wget https://github.com/jsricaurte/dspace9-docker/archive/refs/heads/main.zip
+unzip main.zip
+mv dspace9-docker-main dspace9
+cd dspace9
+```
+
+> Si no tienes `wget` ni `unzip`: `sudo apt install -y wget unzip`
 
 ---
 
