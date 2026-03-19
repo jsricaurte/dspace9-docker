@@ -8,22 +8,11 @@
 
 ## Descripción
 
-Esta guía explica cómo instalar **DSpace 9** usando **Docker Compose** en un servidor Ubuntu Server sin experiencia previa. Está pensada para administradores de sistemas universitarios, bibliotecarios digitales y equipos de TI que necesitan desplegar un repositorio institucional funcional sin instalar manualmente Java, PostgreSQL, Apache Solr ni Angular.
+Esta guía explica cómo instalar **DSpace 9** usando **Docker Compose** en un servidor Ubuntu Server, pensada para administradores de sistemas universitarios, bibliotecarios digitales y equipos de TI que necesitan desplegar un repositorio institucional funcional sin instalar manualmente Java, PostgreSQL, Apache Solr ni Angular.
 
-El repositorio incluye el `docker-compose.yml` definitivo con los errores de producción ya resueltos, scripts de instalación y limpieza, guías paso a paso desde cero (incluyendo la instalación de Docker), y un catálogo de los 8 errores más comunes con sus causas y soluciones exactas.
+Incluye el `docker-compose.yml` definitivo con los errores de producción ya resueltos, scripts de instalación y limpieza, guías paso a paso desde cero (incluyendo la instalación de Docker), y un catálogo de los 8 errores más comunes con sus causas y soluciones exactas.
 
 **Palabras clave:** DSpace 9 Docker, DSpace Docker Compose Ubuntu, instalar DSpace repositorio institucional, DSpace 9 producción, DSpace Angular SSR Docker, LOGGING_CONFIG DSpace Spring Boot, ssrBaseUrl DSpace config.yml, repositorio institucional open access Docker, DSpace 502 error, DSpace 500 Service unavailable.
-
----
-
-## ¿Qué es DSpace?
-
-DSpace es el software de repositorio institucional más usado en universidades
-del mundo. Permite gestionar, preservar y dar acceso abierto a tesis, artículos,
-libros y cualquier producción académica de la institución.
-
-Esta guía usa **Docker** para simplificar la instalación — sin instalar
-manualmente Java, PostgreSQL, Solr ni Angular.
 
 ---
 
@@ -58,17 +47,13 @@ Navegador del usuario
 ### Opción A — Con Git instalado
 
 ```bash
-# 1. Clonar
 git clone https://github.com/jsricaurte/dspace9-docker.git ~/dspace9
 cd ~/dspace9
 ```
 
 ### Opción B — Sin Git (solo wget)
 
-Si tienes Docker pero no tienes Git, descarga el repositorio como ZIP directamente:
-
 ```bash
-# 1. Descargar y descomprimir
 cd ~
 wget https://github.com/jsricaurte/dspace9-docker/archive/refs/heads/main.zip
 unzip main.zip
@@ -83,17 +68,17 @@ cd dspace9
 ### Pasos comunes (para ambas opciones)
 
 ```bash
-# 2. Configurar
+# Configurar
 cp .env.example .env
 nano .env              # ← edita IP, contraseña y nombre del repositorio
 
-# 3. Permisos
+# Permisos
 chmod +x setup.sh limpiar.sh
 
-# 4. Instalar
+# Instalar
 ./setup.sh
 
-# 5. Cuando el frontend esté listo (15-25 min), crear administrador
+# Cuando el frontend esté listo (15-25 min), crear administrador
 ./setup.sh create-admin
 ```
 
@@ -105,9 +90,9 @@ Sigue las guías en orden:
 
 | # | Guía | Contenido |
 |---|------|-----------|
-| 1 | [docs/00-instalar-docker.md](docs/00-instalar-docker.md) | Instalar Ubuntu Server + Docker + Docker Compose |
-| 2 | [docs/01-instalar-dspace.md](docs/01-instalar-dspace.md) | Configurar e instalar DSpace 9 paso a paso |
-| 3 | [docs/ERRORES.md](docs/ERRORES.md) | 8 errores reales con causas y soluciones |
+| 1 | [00-instalar-docker.md](00-instalar-docker.md) | Instalar Ubuntu Server + Docker + Docker Compose |
+| 2 | [01-instalar-dspace.md](01-instalar-dspace.md) | Configurar e instalar DSpace 9 paso a paso |
+| 3 | [ERRORES.md](ERRORES.md) | 8 errores reales con causas y soluciones |
 
 ---
 
@@ -124,10 +109,9 @@ dspace9-docker/
 │   └── ssl/               ← setup.sh genera los certificados aquí
 ├── dspace-ui/
 │   └── config.yml         ← Generado por setup.sh (no editar a mano)
-└── docs/
-    ├── 00-instalar-docker.md
-    ├── 01-instalar-dspace.md
-    └── ERRORES.md
+├── 00-instalar-docker.md  ← Guía: instalar Ubuntu + Docker
+├── 01-instalar-dspace.md  ← Guía: instalar DSpace paso a paso
+└── ERRORES.md             ← 8 errores reales con soluciones
 ```
 
 ---
@@ -156,7 +140,7 @@ dspace9-docker/
 | DSpace API | 5–10 min | 1–2 min |
 | Angular UI | 15–25 min | 1–2 min |
 
-> El **502 Bad Gateway** durante el primer arranque es normal.
+> El **502 Bad Gateway** en el primer arranque es normal.
 > Espera hasta que `docker logs dspace-ui -f` muestre:
 > `Server listening on http://0.0.0.0:4000`
 
@@ -164,17 +148,16 @@ dspace9-docker/
 
 ## Errores críticos resueltos
 
-Esta configuración resuelve problemas que no están documentados en otros tutoriales:
-
 | Error | Causa | Solución |
 |-------|-------|---------|
 | Spring Boot muere silenciosamente | Bug Log4j2 + Spring Boot 3.5.x | `LOGGING_CONFIG` en el compose |
-| Error 500 permanente | SSR de Angular usa IP pública desde dentro del contenedor | `ssrBaseUrl` en config.yml |
-| Error 502 permanente | `proxy_pass` sin ruta `/server` | Corrección en nginx.conf |
+| Error 500 permanente | SSR de Angular usa IP pública desde el contenedor | `ssrBaseUrl` en config.yml |
+| Error 502 permanente | `proxy_pass` sin `/server` al final | Corrección en nginx.conf |
 | `docker compose down` no baja todo | `restart: unless-stopped` | Cambiado a `restart: "no"` |
 | Solr falla con error de `cp` | Compose oficial diseñado para desarrollo | Entrypoint sin comandos `cp` |
+| Red interna no confiable | Subnet no alineada con proxies.trusted | Subnet fija `172.23.0.0/24` |
 
-Ver detalles completos en [docs/ERRORES.md](docs/ERRORES.md).
+Ver detalles completos en [ERRORES.md](ERRORES.md).
 
 ---
 
@@ -190,9 +173,4 @@ Ver detalles completos en [docs/ERRORES.md](docs/ERRORES.md).
 
 ## ¿Por qué existe este repositorio?
 
-Durante la instalación en producción encontramos que:
-- El `docker-compose.yml` oficial de DSpace **no funciona** con imágenes precompiladas
-- No existe documentación sobre los errores comunes con Docker en producción
-- Los tutoriales disponibles omiten detalles críticos como `LOGGING_CONFIG` y `ssrBaseUrl`
-
-Este repositorio documenta lo que realmente funcionó.
+El `docker-compose.yml` oficial de DSpace está diseñado para desarrollo con código fuente local — no funciona directamente con imágenes precompiladas de Docker Hub. No existe documentación sobre los errores críticos que aparecen en producción. Este repositorio documenta lo que realmente funcionó.
