@@ -1,23 +1,22 @@
 ###############################################################################
 # DSpace 9 — Docker Compose VALIDADO EN PRODUCCIÓN
+# Repositorio: https://github.com/jsricaurte/dspace9-docker
 #
-# Servidor probado: Ubuntu 24.04 LTS, 8 cores, 8 GB RAM
+# Servidor probado: Ubuntu 24.04 LTS · 8 cores · 8 GB RAM
 # Versiones:        DSpace 9.3-SNAPSHOT · PostgreSQL 16 · NGINX 1.25
 #
-# ⚠ ANTES DE USAR:
-#   1. cp .env.example .env
-#   2. Edita .env con tu IP/dominio y contraseña
-#   3. chmod +x setup.sh limpiar.sh
-#   4. ./limpiar.sh   ← solo si quieres empezar desde cero
-#   5. ./setup.sh
+# ANTES DE USAR:
+#   1. cp .env.example .env && nano .env
+#   2. chmod +x setup.sh limpiar.sh
+#   3. ./setup.sh
 #
-# ERRORES CRÍTICOS RESUELTOS (ver docs/ERRORES.md para detalles):
-#   ✓ Spring Boot muere silenciosamente → LOGGING_CONFIG obligatorio
-#   ✓ Error 500 "Service unavailable" → ssrBaseUrl en config.yml
-#   ✓ Error 502 Bad Gateway permanente → proxy_pass con /server al final
-#   ✓ docker compose down no baja todo → sin restart en todos los servicios
-#   ✓ Solr falla con "cp: cannot stat" → entrypoint sin comandos cp
-#   ✓ nginx no confía en el proxy → subnet y proxies.trusted.ipranges alineados
+# ERRORES CRÍTICOS RESUELTOS (ver docs/ERRORES.md):
+#   ✓ Spring Boot muere silenciosamente  → LOGGING_CONFIG obligatorio
+#   ✓ Error 500 "Service unavailable"    → ssrBaseUrl en config.yml
+#   ✓ Error 502 Bad Gateway permanente   → proxy_pass con /server al final
+#   ✓ docker compose down no baja todo   → restart: unless-stopped en todos los servicios
+#   ✓ Solr falla con "cp: cannot stat"   → entrypoint sin comandos cp
+#   ✓ nginx no confía en el proxy        → subnet y proxies.trusted alineados
 ###############################################################################
 
 networks:
@@ -26,7 +25,6 @@ networks:
     ipam:
       config:
         # Subnet fija OBLIGATORIA — debe coincidir con proxies.trusted.ipranges
-        # del servicio dspace. Si cambias esto, cambia también ese valor.
         - subnet: 172.23.0.0/24
 
 volumes:
@@ -54,13 +52,12 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-    # Sin restart: los contenedores deben bajar con docker compose down sin resistencia
-    restart: "no"
+    restart: unless-stopped
 
   # ── 2. APACHE SOLR ─────────────────────────────────────────────────────────
-  # LECCIÓN: No usar el entrypoint del repo oficial de GitHub.
-  # Ese compose es para desarrollo con código fuente local.
-  # Las imágenes de Docker Hub ya incluyen los configsets — solo precreate-core.
+  # Las imágenes de Docker Hub ya incluyen los configsets.
+  # NO usar el entrypoint del repo oficial de GitHub — ese es para desarrollo
+  # con código fuente local y falla con imágenes precompiladas.
   dspacesolr:
     image: dspace/dspace-solr:dspace-9_x
     container_name: dspacesolr
@@ -81,48 +78,38 @@ services:
       - solrdata:/var/solr/data
     networks:
       - dspacenet
-    restart: "no"
+    restart: unless-stopped
 
   # ── 3. DSPACE BACKEND (REST API) ───────────────────────────────────────────
-  # LECCIÓN 1 (CRÍTICA): LOGGING_CONFIG es OBLIGATORIO.
-  #   Sin esta variable, Log4j2 entra en un bucle recursivo con Spring Boot y
-  #   mata el proceso silenciosamente — solo aparece el banner ASCII en los logs.
+  # CRÍTICO 1: LOGGING_CONFIG es OBLIGATORIO.
+  #   Sin esta variable, Log4j2 entra en bucle recursivo con Spring Boot 3.5.x
+  #   y mata el proceso en silencio — solo aparece el banner ASCII en los logs.
   #
-  # LECCIÓN 2: proxies.trusted.ipranges DEBE coincidir con la subnet de la red.
-  #   Si DSpace no confía en el proxy de nginx, las IPs de cliente quedan mal
-  #   registradas y algunas operaciones fallan.
-  #
-  # LECCIÓN 3: dspace__P__server__P__url y dspace__P__ui__P__url deben ser
-  #   las URLs públicas reales (con HTTPS). DSpace las usa en metadatos OAI-PMH
-  #   y en cabeceras de respuesta.
+  # CRÍTICO 2: proxies.trusted.ipranges DEBE coincidir con la subnet de la red.
+  #   Sin esto DSpace no confía en nginx y algunas operaciones fallan.
   dspace:
     image: dspace/dspace:dspace-9_x
     container_name: dspace
     environment:
-      dspace__P__dir:             /dspace
-      dspace__P__name:            ${DSPACE_NAME:-Repositorio Institucional}
-      dspace__P__server__P__url:  https://${DSPACE_HOST}/server
-      dspace__P__ui__P__url:      https://${DSPACE_HOST}
-      db__P__url:        jdbc:postgresql://dspacedb:5432/${POSTGRES_DB:-dspace}
-      db__P__username:   ${POSTGRES_USER:-dspace}
-      db__P__password:   ${POSTGRES_PASSWORD}
-      solr__P__server:   http://dspacesolr:8983/solr
+      dspace__P__dir:            /dspace
+      dspace__P__name:           ${DSPACE_NAME:-Repositorio Institucional}
+      dspace__P__server__P__url: https://${DSPACE_HOST}/server
+      dspace__P__ui__P__url:     https://${DSPACE_HOST}
+      db__P__url:       jdbc:postgresql://dspacedb:5432/${POSTGRES_DB:-dspace}
+      db__P__username:  ${POSTGRES_USER:-dspace}
+      db__P__password:  ${POSTGRES_PASSWORD}
+      solr__P__server:  http://dspacesolr:8983/solr
       proxies__P__trusted__P__ipranges: '172.23.0'
-      # OBLIGATORIO: evita el bucle recursivo Log4j2 + Spring Boot 3.5.x
       LOGGING_CONFIG: /dspace/config/log4j2-container.xml
     entrypoint:
       - /bin/bash
       - '-c'
       - |
-        echo "Esperando PostgreSQL en dspacedb:5432..."
-        while ! (echo > /dev/tcp/dspacedb/5432) 2>/dev/null; do
-          sleep 3
-        done
+        echo "Esperando PostgreSQL..."
+        while ! (echo > /dev/tcp/dspacedb/5432) 2>/dev/null; do sleep 3; done
         echo "PostgreSQL listo."
-        echo "Esperando Solr en dspacesolr:8983..."
-        while ! (echo > /dev/tcp/dspacesolr/8983) 2>/dev/null; do
-          sleep 3
-        done
+        echo "Esperando Solr..."
+        while ! (echo > /dev/tcp/dspacesolr/8983) 2>/dev/null; do sleep 3; done
         echo "Solr listo. Ejecutando migración de base de datos..."
         /dspace/bin/dspace database migrate
         echo "Migración completa. Iniciando REST API..."
@@ -138,22 +125,19 @@ services:
       - dspacenet
     expose:
       - "8080"
-    restart: "no"
+    restart: unless-stopped
 
   # ── 4. DSPACE ANGULAR UI (FRONTEND) ────────────────────────────────────────
-  # LECCIÓN CRÍTICA — SSR (Server Side Rendering):
-  #   Angular Universal renderiza páginas en el servidor Node ANTES de
-  #   enviarlas al navegador. Durante ese proceso, Node intenta contactar
-  #   el backend usando la URL pública (DSPACE_HOST), pero desde DENTRO del
-  #   contenedor esa IP/dominio NO es accesible.
+  # CRÍTICO: Angular usa SSR (Server Side Rendering).
+  #   Node renderiza la página en el servidor ANTES de enviarla al navegador.
+  #   Durante ese proceso, Node intenta contactar el backend desde DENTRO del
+  #   contenedor — donde la IP pública NO es accesible.
   #
-  #   Solución: config.yml con ssrBaseUrl apuntando al nombre interno Docker.
-  #     - El navegador del usuario usa:  DSPACE_HOST (IP/dominio público)
-  #     - El SSR interno (Node) usa:     http://dspace:8080/server
-  #     - ssr.replaceRestUrl garantiza que las URLs internas no lleguen al browser
+  #   La solución es ssrBaseUrl en config.yml (generado por setup.sh):
+  #     - Navegador del usuario usa: DSPACE_HOST (IP/dominio público)
+  #     - SSR interno (Node) usa:    http://dspace:8080/server (red Docker)
   #
   #   Sin ssrBaseUrl → error 500 "Service unavailable" permanente.
-  #   El setup.sh genera dspace-ui/config.yml con la IP correcta de tu .env.
   dspace-ui:
     image: dspace/dspace-angular:dspace-9_x
     container_name: dspace-ui
@@ -166,8 +150,6 @@ services:
       DSPACE_REST_PORT:      '443'
       DSPACE_REST_NAMESPACE: '/server'
     volumes:
-      # config.yml generado por setup.sh con la IP real del .env
-      # Nunca editar este archivo a mano — usar el .env y re-ejecutar setup.sh
       - ./dspace-ui/config.yml:/app/config/config.yml:ro
     depends_on:
       - dspace
@@ -175,11 +157,11 @@ services:
       - dspacenet
     expose:
       - "4000"
-    restart: "no"
+    restart: unless-stopped
 
   # ── 5. NGINX (PROXY INVERSO + SSL) ─────────────────────────────────────────
-  # LECCIÓN: proxy_pass al backend DEBE terminar en /server.
-  #   Sin esa ruta, el backend responde 404 que nginx convierte en 502.
+  # CRÍTICO: proxy_pass al backend DEBE terminar en /server.
+  #   Sin esa ruta exacta el backend devuelve 404 → nginx lo convierte en 502.
   nginx:
     image: nginx:1.25-alpine
     container_name: dspace-nginx
@@ -194,4 +176,4 @@ services:
       - dspace-ui
     networks:
       - dspacenet
-    restart: "no"
+    restart: unless-stopped
