@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
 #  setup.sh — DSpace 9 con Docker Compose
+#  https://github.com/jsricaurte/dspace9-docker
 #
-#  Qué hace este script:
-#    1. Verifica que Docker y el .env estén listos
-#    2. Genera el certificado SSL auto-firmado (si no existe)
-#    3. Genera dspace-ui/config.yml con la IP real de tu .env
-#    4. Descarga las imágenes Docker
-#    5. Levanta los contenedores
-#
-#  Comandos disponibles:
+#  Uso:
 #    ./setup.sh                → instala y levanta todo
 #    ./setup.sh create-admin   → crea la cuenta de administrador
 #    ./setup.sh status         → estado de los contenedores
@@ -23,7 +17,6 @@
 
 set -euo pipefail
 
-# ── Colores ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
 
@@ -40,7 +33,7 @@ COMPOSE="docker compose"
 # =============================================================================
 check_requisitos() {
     command -v docker >/dev/null 2>&1 \
-        || error "Docker no está instalado. Sigue la guía en docs/00-instalar-docker.md"
+        || error "Docker no está instalado. Sigue la guía: docs/00-instalar-docker.md"
 
     docker compose version >/dev/null 2>&1 \
         || error "El plugin 'docker compose' no está instalado."
@@ -48,28 +41,78 @@ check_requisitos() {
     [ -f ".env" ] \
         || error "Falta el archivo .env — ejecuta: cp .env.example .env && nano .env"
 
-    # Verificar que se editaron los valores por defecto
     grep -q "CAMBIA_" .env \
-        && error "Edita el .env antes de continuar. Cambia los valores CAMBIA_... por los tuyos."
+        && error "Edita el .env antes de continuar. Reemplaza los valores CAMBIA_... por los tuyos."
 
-    success "Docker instalado y .env configurado."
+    success "Docker y .env listos."
 }
 
 # =============================================================================
-# INSTALACIÓN PRINCIPAL
+# INSTALACIÓN
 # =============================================================================
 do_install() {
     titulo "Instalando DSpace 9"
     check_requisitos
 
-    # Leer IP/dominio del .env
     DSPACE_HOST_VAL=$(grep "^DSPACE_HOST=" .env | cut -d= -f2 | tr -d ' ')
 
-    # ── 1. Certificado SSL ──────────────────────────────────────────────────
+    # ── 1. Generar nginx/nginx.conf ────────────────────────────────────────
+    # El setup.sh genera este archivo directamente para garantizar que
+    # siempre esté en la ubicación correcta, sin depender de la estructura
+    # del repositorio descargado.
+    info "Generando nginx/nginx.conf..."
     mkdir -p nginx/ssl
+    cat > nginx/nginx.conf << 'NGINXEOF'
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    sendfile      on;
+    keepalive_timeout 65;
+    client_max_body_size 512M;
+
+    server {
+        listen 80;
+        server_name _;
+        return 301 https://$host$request_uri;
+    }
+
+    server {
+        listen 443 ssl;
+        server_name _;
+
+        ssl_certificate     /etc/nginx/ssl/server.crt;
+        ssl_certificate_key /etc/nginx/ssl/server.key;
+        ssl_protocols       TLSv1.2 TLSv1.3;
+        ssl_ciphers         HIGH:!aNULL:!MD5;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        location /server {
+            proxy_pass          http://dspace:8080/server;
+            proxy_read_timeout  300s;
+            proxy_connect_timeout 300s;
+            proxy_send_timeout  300s;
+        }
+
+        location / {
+            proxy_pass         http://dspace-ui:4000;
+            proxy_read_timeout 120s;
+        }
+    }
+}
+NGINXEOF
+    success "nginx/nginx.conf generado."
+
+    # ── 2. Certificado SSL auto-firmado ────────────────────────────────────
     if [ ! -f "nginx/ssl/server.crt" ] || [ ! -f "nginx/ssl/server.key" ]; then
         info "Generando certificado SSL auto-firmado (válido 10 años)..."
-        # Intentar con SAN (para IPs), si falla hacer sin SAN (para dominios)
         openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
             -keyout nginx/ssl/server.key \
             -out    nginx/ssl/server.crt \
@@ -84,36 +127,31 @@ do_install() {
         success "Certificado SSL ya existe, se reutiliza."
     fi
 
-    # ── 2. config.yml para Angular SSR ─────────────────────────────────────
-    # CRÍTICO: ssrBaseUrl le dice al servidor Node (SSR) que use la red
-    # interna Docker en vez de la IP pública (inaccesible desde el contenedor).
-    # Sin ssrBaseUrl → error 500 "Service unavailable" permanente.
-    # Con ssrBaseUrl → SSR funciona Y el SEO se preserva (replaceRestUrl: true
-    # garantiza que las URLs internas no llegan al navegador del usuario).
-    info "Generando dspace-ui/config.yml con host: ${DSPACE_HOST_VAL}..."
+    # ── 2. config.yml para Angular SSR ────────────────────────────────────
+    # ssrBaseUrl le indica al servidor Node (SSR) que use la red interna Docker
+    # en vez de la IP pública (inaccesible desde dentro del contenedor).
+    # Sin ssrBaseUrl → error 500 permanente.
+    # replaceRestUrl garantiza que las URLs internas no lleguen al navegador.
+    info "Generando dspace-ui/config.yml..."
     mkdir -p dspace-ui
     cat > dspace-ui/config.yml << EOF
 # config.yml — DSpace Angular UI
 # Generado automáticamente por setup.sh — no editar a mano.
-# Para cambiar la IP/dominio: edita .env y re-ejecuta ./setup.sh
+# Para cambiar la IP: edita .env y vuelve a ejecutar ./setup.sh
 
 rest:
   ssl: false
   host: ${DSPACE_HOST_VAL}
   port: 443
   nameSpace: /server
-  # ssrBaseUrl: URL que usa el servidor Node internamente para el SSR.
-  # DEBE ser el nombre del contenedor Docker, no la IP pública.
   ssrBaseUrl: http://dspace:8080/server
 
 ssr:
-  # replaceRestUrl: reemplaza las URLs internas del SSR por la URL pública
-  # antes de enviar la página al navegador. Preserva el SEO.
   replaceRestUrl: true
 EOF
-    success "dspace-ui/config.yml generado."
+    success "dspace-ui/config.yml generado con host: ${DSPACE_HOST_VAL}"
 
-    # ── 3. Descargar imágenes ───────────────────────────────────────────────
+    # ── 3. Descargar imágenes ──────────────────────────────────────────────
     info "Descargando imágenes Docker (puede tardar según la conexión)..."
     $COMPOSE pull
 
@@ -122,24 +160,24 @@ EOF
     $COMPOSE up -d
 
     echo ""
-    echo -e "${BOLD}${GREEN}╔══════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${GREEN}║   DSpace 9 iniciando...                  ║${NC}"
-    echo -e "${BOLD}${GREEN}╚══════════════════════════════════════════╝${NC}"
+    echo -e "${BOLD}${GREEN}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${GREEN}║   DSpace 9 iniciando...                      ║${NC}"
+    echo -e "${BOLD}${GREEN}╚══════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${YELLOW}Tiempos de arranque (primera vez):${NC}"
     echo -e "  PostgreSQL + Solr:  ~30 segundos"
     echo -e "  DSpace API:         5-10 minutos  (migración de base de datos)"
     echo -e "  Angular UI:         15-25 minutos (compilación inicial)"
     echo ""
-    warn "El error '502 Bad Gateway' en estos primeros minutos es NORMAL."
-    warn "Espera hasta ver en los logs: 'Server listening on http://0.0.0.0:4000'"
+    warn "El '502 Bad Gateway' en estos primeros minutos es NORMAL."
+    warn "Espera a que los logs muestren: 'Server listening on http://0.0.0.0:4000'"
     echo ""
     echo -e "Monitorear backend:  ${BLUE}docker logs dspace -f${NC}"
     echo -e "Monitorear frontend: ${BLUE}docker logs dspace-ui -f${NC}"
     echo ""
     echo -e "Cuando esté listo:   ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
     echo ""
-    info "Siguiente paso: crea el administrador con  ./setup.sh create-admin"
+    info "Siguiente paso → crea el administrador con:  ./setup.sh create-admin"
 }
 
 # =============================================================================
@@ -148,20 +186,19 @@ EOF
 do_create_admin() {
     titulo "Crear Administrador de DSpace 9"
 
-    # Verificar que el backend está corriendo
     docker ps --filter "name=^dspace$" --filter "status=running" --format "{{.Names}}" \
         | grep -q "^dspace$" \
         || error "El contenedor 'dspace' no está corriendo. Ejecuta primero: ./setup.sh"
 
     echo -e "Ingresa los datos del administrador:\n"
-    read -rp "  Email       : " ADMIN_EMAIL
-    read -rp "  Nombre      : " ADMIN_FIRST
-    read -rp "  Apellido    : " ADMIN_LAST
-    read -rsp "  Contraseña  : " ADMIN_PASS; echo ""
+    read -rp  "  Email       : " ADMIN_EMAIL
+    read -rp  "  Nombre      : " ADMIN_FIRST
+    read -rp  "  Apellido    : " ADMIN_LAST
+    read -rsp "  Contraseña  : " ADMIN_PASS;  echo ""
     read -rsp "  Repite clave: " ADMIN_PASS2; echo ""
 
     [ "$ADMIN_PASS" = "$ADMIN_PASS2" ] \
-        || error "Las contraseñas no coinciden. Vuelve a intentarlo."
+        || error "Las contraseñas no coinciden."
     [ ${#ADMIN_PASS} -ge 8 ] \
         || error "La contraseña debe tener al menos 8 caracteres."
 
@@ -184,45 +221,21 @@ do_create_admin() {
 # =============================================================================
 do_reindex() {
     titulo "Re-indexando contenido en Solr"
-    info "Puede tardar varios minutos según el volumen de contenido..."
+    docker ps --filter "name=^dspace$" --filter "status=running" --format "{{.Names}}" \
+        | grep -q "^dspace$" \
+        || error "El contenedor 'dspace' no está corriendo."
+    info "Puede tardar varios minutos..."
     docker exec dspace /dspace/bin/dspace index-discovery -b
     success "Re-indexación completada."
 }
 
 # =============================================================================
-# ESTADO
+# ESTADO / LOGS / STOP / RESTART
 # =============================================================================
-do_status() {
-    titulo "Estado de los contenedores"
-    $COMPOSE ps
-}
-
-# =============================================================================
-# LOGS
-# =============================================================================
-do_logs() {
-    info "Mostrando logs (Ctrl+C para salir)..."
-    $COMPOSE logs -f --tail=100
-}
-
-# =============================================================================
-# DETENER
-# =============================================================================
-do_stop() {
-    titulo "Deteniendo DSpace 9"
-    $COMPOSE stop
-    success "Contenedores detenidos. Los datos persisten en los volúmenes Docker."
-    info "Para volver a arrancar:  docker compose up -d"
-}
-
-# =============================================================================
-# REINICIAR
-# =============================================================================
-do_restart() {
-    titulo "Reiniciando DSpace 9"
-    $COMPOSE restart
-    success "Reiniciado."
-}
+do_status()  { titulo "Estado de los contenedores"; $COMPOSE ps; }
+do_logs()    { info "Mostrando logs (Ctrl+C para salir)..."; $COMPOSE logs -f --tail=100; }
+do_stop()    { titulo "Deteniendo DSpace 9"; $COMPOSE stop; success "Detenido. Datos conservados."; }
+do_restart() { titulo "Reiniciando DSpace 9"; $COMPOSE restart; success "Listo."; }
 
 # =============================================================================
 # DISPATCHER
@@ -239,15 +252,15 @@ case "${1:-install}" in
         echo ""
         echo -e "${BOLD}Uso:${NC} $0 [comando]"
         echo ""
-        echo "  (sin comando)   Instala y levanta DSpace 9"
-        echo "  create-admin    Crea la cuenta de administrador"
-        echo "  reindex         Re-indexa contenido en Solr"
-        echo "  status          Estado de los contenedores"
-        echo "  logs            Logs en tiempo real"
-        echo "  stop            Detener contenedores"
-        echo "  restart         Reiniciar contenedores"
+        echo "  (sin argumento)  Instala y levanta DSpace 9"
+        echo "  create-admin     Crea la cuenta de administrador"
+        echo "  reindex          Re-indexa contenido en Solr"
+        echo "  status           Estado de los contenedores"
+        echo "  logs             Logs en tiempo real"
+        echo "  stop             Detener (datos se conservan)"
+        echo "  restart          Reiniciar"
         echo ""
-        echo "Para limpiar TODO: ./limpiar.sh"
+        echo "  Para limpiar TODO: ./limpiar.sh"
         echo ""
         ;;
 esac
