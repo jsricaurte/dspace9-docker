@@ -1,0 +1,152 @@
+###############################################################################
+# DSpace 9 — Docker Compose DESARROLLO
+# Repositorio: https://github.com/jsricaurte/dspace9-docker
+#
+# DIFERENCIAS CON PRODUCCIÓN:
+#   - Angular corre en modo desarrollo (npm run serve)
+#   - Recarga automática al detectar cambios en el código
+#   - NO usa el volumen angular_dist (sin build persistido)
+#   - Tiempo de arranque: ~15-25 min (recompila siempre)
+#   - restart: "no" — los contenedores NO se levantan solos al reiniciar el SO
+#
+# USO:
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml down
+#
+# Para producción usa docker-compose.yml (sin el -f)
+###############################################################################
+
+networks:
+  dspacenet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/24
+
+volumes:
+  pgdata:
+  solrdata:
+  assetstore:
+
+services:
+
+  dspacedb:
+    image: postgres:16-alpine
+    container_name: dspacedb
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-dspace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB:-dspace}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dspacenet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dspace} -d ${POSTGRES_DB:-dspace}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: "no"
+
+  dspacesolr:
+    image: dspace/dspace-solr:dspace-9_x
+    container_name: dspacesolr
+    user: root
+    working_dir: /var/solr/data
+    entrypoint:
+      - /bin/bash
+      - '-c'
+      - |
+        init-var-solr
+        precreate-core authority  /opt/solr/server/solr/configsets/authority
+        precreate-core oai        /opt/solr/server/solr/configsets/oai
+        precreate-core search     /opt/solr/server/solr/configsets/search
+        precreate-core statistics /opt/solr/server/solr/configsets/statistics
+        chown -R solr:solr /var/solr
+        runuser -u solr -- solr-foreground
+    volumes:
+      - solrdata:/var/solr/data
+    networks:
+      - dspacenet
+    restart: "no"
+
+  dspace:
+    image: dspace/dspace:dspace-9_x
+    container_name: dspace
+    environment:
+      dspace__P__dir:            /dspace
+      dspace__P__name:           ${DSPACE_NAME:-Repositorio Institucional DEV}
+      dspace__P__server__P__url: https://${DSPACE_HOST}/server
+      dspace__P__ui__P__url:     https://${DSPACE_HOST}
+      db__P__url:       jdbc:postgresql://dspacedb:5432/${POSTGRES_DB:-dspace}
+      db__P__username:  ${POSTGRES_USER:-dspace}
+      db__P__password:  ${POSTGRES_PASSWORD}
+      solr__P__server:  http://dspacesolr:8983/solr
+      proxies__P__trusted__P__ipranges: '172.23.0'
+      LOGGING_CONFIG: /dspace/config/log4j2-container.xml
+    entrypoint:
+      - /bin/bash
+      - '-c'
+      - |
+        echo "Esperando PostgreSQL..."
+        while ! (echo > /dev/tcp/dspacedb/5432) 2>/dev/null; do sleep 3; done
+        echo "PostgreSQL listo."
+        echo "Esperando Solr..."
+        while ! (echo > /dev/tcp/dspacesolr/8983) 2>/dev/null; do sleep 3; done
+        echo "Solr listo. Ejecutando migración de base de datos..."
+        /dspace/bin/dspace database migrate
+        echo "Migración completa. Iniciando REST API..."
+        java -jar /dspace/webapps/server-boot.jar --dspace.dir=/dspace
+    volumes:
+      - assetstore:/dspace/assetstore
+    depends_on:
+      dspacedb:
+        condition: service_healthy
+      dspacesolr:
+        condition: service_started
+    networks:
+      - dspacenet
+    expose:
+      - "8080"
+    restart: "no"
+
+  # Modo desarrollo: npm run serve — recarga automática, sin build persistido.
+  # Útil para probar cambios de configuración sin recompilar todo.
+  # El 500 en modo dev es normal si la IP no está en allowedHosts.
+  dspace-ui:
+    image: dspace/dspace-angular:dspace-9_x
+    container_name: dspace-ui
+    environment:
+      DSPACE_UI_SSL:         'false'
+      DSPACE_UI_HOST:        '0.0.0.0'
+      DSPACE_UI_PORT:        '4000'
+      DSPACE_REST_SSL:       'false'
+      DSPACE_REST_HOST:      ${DSPACE_HOST}
+      DSPACE_REST_PORT:      '443'
+      DSPACE_REST_NAMESPACE: '/server'
+    volumes:
+      - ./dspace-ui/config.yml:/app/config/config.yml:ro
+    depends_on:
+      - dspace
+    networks:
+      - dspacenet
+    expose:
+      - "4000"
+    restart: "no"
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: dspace-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - dspace
+      - dspace-ui
+    networks:
+      - dspacenet
+    restart: "no"
