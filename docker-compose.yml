@@ -1,5 +1,5 @@
 ###############################################################################
-# DSpace 9 — Docker Compose VALIDADO EN PRODUCCIÓN
+# DSpace 9 — Docker Compose PRODUCCIÓN
 # Repositorio: https://github.com/jsricaurte/dspace9-docker
 #
 # Servidor probado: Ubuntu 24.04 LTS · 8 cores · 8 GB RAM
@@ -10,13 +10,16 @@
 #   2. chmod +x setup.sh limpiar.sh
 #   3. ./setup.sh
 #
-# ERRORES CRÍTICOS RESUELTOS (ver docs/ERRORES.md):
+# ERRORES CRÍTICOS RESUELTOS (ver ERRORES.md):
 #   ✓ Spring Boot muere silenciosamente  → LOGGING_CONFIG obligatorio
 #   ✓ Error 500 "Service unavailable"    → ssrBaseUrl en config.yml
 #   ✓ Error 502 Bad Gateway permanente   → proxy_pass con /server al final
-#   ✓ docker compose down no baja todo   → restart: unless-stopped en todos los servicios
+#   ✓ docker compose down no baja todo   → restart: unless-stopped
 #   ✓ Solr falla con "cp: cannot stat"   → entrypoint sin comandos cp
 #   ✓ nginx no confía en el proxy        → subnet y proxies.trusted alineados
+#   ✓ Angular recompila en cada reinicio → entrypoint con build persistido en volumen
+#   ✓ Angular SSR no permite IPs         → NODE_ENV=production node (sin cross-env)
+#   ✓ config.json embebe ssl:false       → parche Python post-build en setup.sh
 ###############################################################################
 
 networks:
@@ -28,10 +31,10 @@ networks:
         - subnet: 172.23.0.0/24
 
 volumes:
-  pgdata:        # Datos PostgreSQL    ← NUNCA borrar en producción
+  pgdata:        # Datos PostgreSQL   ← NUNCA borrar en producción
   solrdata:      # Índices Solr        ← NUNCA borrar en producción
-  assetstore:    # Archivos subidos     ← NUNCA borrar en producción
-  angular_dist:  # Build Angular SSR    ← persiste entre reinicios (build solo la primera vez)
+  assetstore:    # Archivos subidos    ← NUNCA borrar en producción
+  angular_dist:  # Build Angular SSR   ← persiste entre reinicios (build solo la primera vez)
 
 services:
 
@@ -82,7 +85,12 @@ services:
     restart: unless-stopped
 
   # ── 3. DSPACE BACKEND (REST API) ───────────────────────────────────────────
-  # LOGGING_CONFIG es OBLIGATORIO — sin él Spring Boot 3.5.x muere silenciosamente
+  # CRÍTICO 1: LOGGING_CONFIG es OBLIGATORIO.
+  #   Sin esta variable, Log4j2 entra en bucle recursivo con Spring Boot 3.5.x
+  #   y mata el proceso en silencio — solo aparece el banner ASCII en los logs.
+  #
+  # CRÍTICO 2: proxies.trusted.ipranges DEBE coincidir con la subnet de la red.
+  #   Sin esto DSpace no confía en nginx y algunas operaciones fallan.
   dspace:
     image: dspace/dspace:dspace-9_x
     container_name: dspace
@@ -124,16 +132,21 @@ services:
     restart: unless-stopped
 
   # ── 4. DSPACE ANGULAR UI (FRONTEND) ────────────────────────────────────────
-  # PROBLEMA RESUELTO: La imagen base usa "npm run serve" (modo desarrollo) como
-  # entrypoint, que recompila Angular en cada reinicio del servidor (~25 min).
+  # PROBLEMA RESUELTO: La imagen base usa "npm run serve" (modo desarrollo)
+  # como entrypoint — recompila Angular en cada reinicio (~25-40 min).
   #
   # SOLUCIÓN: Sobreescribir con entrypoint (NO command).
   #   - "command" se pasa como argumento al entrypoint existente → no lo reemplaza
-  #   - "entrypoint" reemplaza completamente el proceso de arrancade
+  #   - "entrypoint" reemplaza completamente el proceso de arranque
   #
-  # Lógica de detección:
-  #   - dist/server/main.js existe → arranca modo producción (1-2 min)
-  #   - No existe → compila una vez y guarda en volumen angular_dist
+  # IMPORTANTE: No usar "cross-env" — no existe en /bin/sh de Linux.
+  #   Usar directamente: NODE_ENV=production node /app/dist/server/main
+  #
+  # El volumen angular_dist persiste el build. Primera vez: ~25-40 min.
+  # Reinicios siguientes: ~1-2 min (arranque directo sin recompilar).
+  #
+  # NOTA: Después de la primera compilación, el setup.sh aplica un parche
+  # Python al config.json para corregir ssl:false → ssl:true.
   dspace-ui:
     image: dspace/dspace-angular:dspace-9_x
     container_name: dspace-ui
@@ -143,19 +156,19 @@ services:
       - |
         if [ -f /app/dist/server/main.js ]; then
           echo "Build encontrado. Arrancando en modo producción..."
-          cross-env NODE_ENV=production node /app/dist/server/main
+          NODE_ENV=production node /app/dist/server/main
         else
-          echo "Primera vez: compilando en modo producción (~25 min)..."
-          npm run build:ssr && cross-env NODE_ENV=production node /app/dist/server/main
+          echo "Primera vez: compilando en modo producción (~25-40 min)..."
+          npm run build:ssr && NODE_ENV=production node /app/dist/server/main
         fi
     environment:
       DSPACE_UI_SSL:         'false'
       DSPACE_UI_HOST:        '0.0.0.0'
       DSPACE_UI_PORT:        '4000'
       DSPACE_REST_SSL:       'false'
-      DSPACE_REST_HOST:      ${DSPACEPHOST}
+      DSPACE_REST_HOST:      ${DSPACE_HOST}
       DSPACE_REST_PORT:      '443'
-      DSPACE_REST_NAMESPACE2: '/server'
+      DSPACE_REST_NAMESPACE: '/server'
     volumes:
       - ./dspace-ui/config.yml:/app/config/config.yml:ro
       - angular_dist:/app/dist
@@ -167,8 +180,9 @@ services:
       - "4000"
     restart: unless-stopped
 
-  # ── 5. NGINX (PROXY INVERSO + SSL) ────────────────────────────────────────
-  # proxy_pass al backend DEBE terminar en /server
+  # ── 5. NGINX (PROXY INVERSO + SSL) ─────────────────────────────────────────
+  # CRÍTICO: proxy_pass al backend DEBE terminar en /server.
+  #   Sin esa ruta exacta el backend devuelve 404 → nginx lo convierte en 502.
   nginx:
     image: nginx:1.25-alpine
     container_name: dspace-nginx
