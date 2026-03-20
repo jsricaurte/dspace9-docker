@@ -16,7 +16,7 @@
 #   ✓ nginx no confía en el proxy        → subnet y proxies.trusted alineados
 #   ✓ Angular recompila en cada reinicio → entrypoint con build persistido en volumen
 #   ✓ cross-env no existe en Linux       → NODE_ENV=production node directo
-#   ✓ config.json embebe ssl:false       → parche Python en entrypoint post-build
+#   ✓ config.json embebe ssl:false       → parche Python dentro del if post-build
 #   ✓ Angular SSR rechaza IPs            → NG_ALLOWED_HOSTS en environment
 ###############################################################################
 
@@ -116,8 +116,10 @@ services:
       - "8080"
     restart: unless-stopped
 
-  # El parche Python se aplica DENTRO del entrypoint, despues del build
-  # y ANTES de arrancar Node. NG_ALLOWED_HOSTS permite SSR con IPs.
+  # El parche Python va DENTRO del if, justo despues de npm run build:ssr.
+  # Asi se aplica solo cuando hay compilacion y el config.json ya existe.
+  # En reinicios el build ya existe con ssl:true parcheado desde la compilacion.
+  # NG_ALLOWED_HOSTS permite que Angular SSR funcione con IPs directas.
   dspace-ui:
     image: dspace/dspace-angular:dspace-9_x
     container_name: dspace-ui
@@ -128,9 +130,9 @@ services:
         if [ ! -f /app/dist/server/main.js ]; then
           echo "Primera vez: compilando en modo produccion (~25-40 min)..."
           npm run build:ssr
+          echo "Aplicando parche SSL al config.json..."
+          python3 -c "import json,os; f='/app/dist/browser/assets/config.json'; h=os.environ.get('DSPACE_REST_HOST','localhost'); d=json.load(open(f)); d['rest']['ssl']=True; d['rest']['baseUrl']='https://'+h+'/server'; json.dump(d,open(f,'w')); print('Parche OK ssl=True')"
         fi
-        echo "Aplicando parche SSL al config.json..."
-        python3 -c "import json,os; f='/app/dist/browser/assets/config.json'; h=os.environ.get('DSPACE_REST_HOST','localhost'); d=json.load(open(f)); d['rest']['ssl']=True; d['rest']['baseUrl']='https://'+h+'/server'; json.dump(d,open(f,'w')); print('Parche OK ssl=True')"
         echo "Arrancando Node en modo produccion..."
         NODE_ENV=production node /app/dist/server/main
     environment:
