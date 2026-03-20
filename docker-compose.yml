@@ -16,7 +16,7 @@
 #   ✓ nginx no confía en el proxy        → subnet y proxies.trusted alineados
 #   ✓ Angular recompila en cada reinicio → entrypoint con build persistido en volumen
 #   ✓ cross-env no existe en Linux       → NODE_ENV=production node directo
-#   ✓ config.json embebe ssl:false       → parche Python en entrypoint pre-arranque
+#   ✓ config.json embebe ssl:false       → post_start hook aplica parche Python
 ###############################################################################
 
 networks:
@@ -116,15 +116,36 @@ services:
     restart: unless-stopped
 
   # CRÍTICO: El build de producción embebe ssl:false en config.json.
-  # La solución es aplicar el parche Python ANTES de arrancar Node,
-  # dentro del entrypoint, usando un script externo montado como volumen.
-  # Esto garantiza que ssl:true se aplica en cada arranque sin recompilar.
+  # Solución: post_start hook aplica el parche Python DESPUÉS de que
+  # el contenedor arranca — exactamente como lo hacíamos con docker exec.
+  # Requiere Docker Compose >= 2.30.0
   dspace-ui:
     image: dspace/dspace-angular:dspace-9_x
     container_name: dspace-ui
     entrypoint:
       - /bin/sh
-      - /app/config/entrypoint.sh
+      - '-c'
+      - |
+        if [ ! -f /app/dist/server/main.js ]; then
+          echo "Primera vez: compilando en modo producción (~25-40 min)..."
+          npm run build:ssr
+        fi
+        echo "Arrancando Node en modo producción..."
+        NODE_ENV=production node /app/dist/server/main
+    post_start:
+      - command:
+          - python3
+          - '-c'
+          - |
+            import json, os, time
+            time.sleep(5)
+            f = '/app/dist/browser/assets/config.json'
+            host = os.environ.get('DSPACE_REST_HOST', 'localhost')
+            d = json.load(open(f))
+            d['rest']['ssl'] = True
+            d['rest']['baseUrl'] = 'https://' + host + '/server'
+            json.dump(d, open(f, 'w'))
+            print('Parche SSL OK: ssl=True baseUrl=https://' + host + '/server')
     environment:
       DSPACE_UI_SSL:         'false'
       DSPACE_UI_HOST:        '0.0.0.0'
@@ -135,7 +156,6 @@ services:
       DSPACE_REST_NAMESPACE: '/server'
     volumes:
       - ./dspace-ui/config.yml:/app/config/config.yml:ro
-      - ./dspace-ui/entrypoint.sh:/app/config/entrypoint.sh:ro
       - angular_dist:/app/dist
     depends_on:
       - dspace
