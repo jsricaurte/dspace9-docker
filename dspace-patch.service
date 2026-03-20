@@ -1,0 +1,12 @@
+[Unit]
+Description=DSpace post-start patch
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/root/DspacePruebaProduccion/dspace-patch.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
