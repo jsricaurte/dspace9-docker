@@ -1,23 +1,11 @@
 ###############################################################################
-# DSpace 9 — Docker Compose PRODUCCIÓN
+# DSpace 9 — Docker Compose PRODUCCION
 # Repositorio: https://github.com/jsricaurte/dspace9-docker
 #
 # ANTES DE USAR:
 #   1. cp .env.example .env && nano .env
 #   2. chmod +x setup.sh limpiar.sh
 #   3. ./setup.sh
-#
-# ERRORES CRÍTICOS RESUELTOS (ver ERRORES.md):
-#   ✓ Spring Boot muere silenciosamente  → LOGGING_CONFIG obligatorio
-#   ✓ Error 500 "Service unavailable"    → ssrBaseUrl en config.yml
-#   ✓ Error 502 Bad Gateway permanente   → proxy_pass con /server al final
-#   ✓ docker compose down no baja todo   → restart: unless-stopped
-#   ✓ Solr falla con "cp: cannot stat"   → entrypoint sin comandos cp
-#   ✓ nginx no confía en el proxy        → subnet y proxies.trusted alineados
-#   ✓ Angular recompila en cada reinicio → entrypoint con build persistido en volumen
-#   ✓ cross-env no existe en Linux       → NODE_ENV=production node directo
-#   ✓ config.json embebe ssl:false       → parche Python dentro del if post-build
-#   ✓ Angular SSR rechaza IPs            → NG_ALLOWED_HOSTS en environment
 ###############################################################################
 
 networks:
@@ -116,10 +104,6 @@ services:
       - "8080"
     restart: unless-stopped
 
-  # El parche Python va DENTRO del if, justo despues de npm run build:ssr.
-  # Asi se aplica solo cuando hay compilacion y el config.json ya existe.
-  # En reinicios el build ya existe con ssl:true parcheado desde la compilacion.
-  # NG_ALLOWED_HOSTS permite que Angular SSR funcione con IPs directas.
   dspace-ui:
     image: dspace/dspace-angular:dspace-9_x
     container_name: dspace-ui
@@ -128,12 +112,10 @@ services:
       - '-c'
       - |
         if [ ! -f /app/dist/server/main.js ]; then
-          echo "Primera vez: compilando en modo produccion (~25-40 min)..."
           npm run build:ssr
-          echo "Aplicando parche SSL al config.json..."
-          python3 -c "import json,os; f='/app/dist/browser/assets/config.json'; h=os.environ.get('DSPACE_REST_HOST','localhost'); d=json.load(open(f)); d['rest']['ssl']=True; d['rest']['baseUrl']='https://'+h+'/server'; json.dump(d,open(f,'w')); print('Parche OK ssl=True')"
         fi
-        echo "Arrancando Node en modo produccion..."
+        while [ ! -f /app/dist/browser/assets/config.json ]; do sleep 2; done
+        python3 -c "import json,os; f='/app/dist/browser/assets/config.json'; h=os.environ.get('DSPACE_REST_HOST','localhost'); d=json.load(open(f)); d['rest']['ssl']=True; d['rest']['baseUrl']='https://'+h+'/server'; json.dump(d,open(f,'w')); print('Parche OK ssl=True')"
         NODE_ENV=production node /app/dist/server/main
     environment:
       DSPACE_UI_SSL:         'false'
