@@ -155,12 +155,23 @@ services:
       - '-c'
       - |
         if [ -f /app/dist/server/main.js ]; then
-          echo "Build encontrado. Arrancando en modo producción..."
-          NODE_ENV=production node /app/dist/server/main
+          echo "Build encontrado. Aplicando parche SSL..."
         else
           echo "Primera vez: compilando en modo producción (~25-40 min)..."
-          npm run build:ssr && NODE_ENV=production node /app/dist/server/main
+          npm run build:ssr
         fi
+        python3 -c "
+import json, os
+f='/app/dist/browser/assets/config.json'
+host=os.environ.get('DSPACE_REST_HOST','localhost')
+d=json.load(open(f))
+d['rest']['ssl']=True
+d['rest']['baseUrl']='https://'+host+'/server'
+json.dump(d,open(f,'w'))
+print('Parche SSL aplicado: ssl=True baseUrl=https://'+host+'/server')
+"
+        echo "Arrancando servidor Node en modo producción..."
+        NODE_ENV=production node /app/dist/server/main
     environment:
       DSPACE_UI_SSL:         'false'
       DSPACE_UI_HOST:        '0.0.0.0'
