@@ -33,7 +33,7 @@ COMPOSE="docker compose"
 # =============================================================================
 check_requisitos() {
     command -v docker >/dev/null 2>&1 \
-        || error "Docker no está instalado. Sigue la guía: docs/00-instalar-docker.md"
+        || error "Docker no está instalado. Sigue la guía: 00-instalar-docker.md"
 
     docker compose version >/dev/null 2>&1 \
         || error "El plugin 'docker compose' no está instalado."
@@ -56,10 +56,9 @@ do_install() {
 
     DSPACE_HOST_VAL=$(grep "^DSPACE_HOST=" .env | cut -d= -f2 | tr -d ' ')
 
-    # ── 1. Generar nginx/nginx.conf ────────────────────────────────────────
+    # ── 1. Generar nginx/nginx.conf ──────────────────────────────────────────
     # El setup.sh genera este archivo directamente para garantizar que
-    # siempre esté en la ubicación correcta, sin depender de la estructura
-    # del repositorio descargado.
+    # siempre esté en la ubicación correcta sin depender del repo descargado.
     info "Generando nginx/nginx.conf..."
     mkdir -p nginx/ssl
     cat > nginx/nginx.conf << 'NGINXEOF'
@@ -110,7 +109,7 @@ http {
 NGINXEOF
     success "nginx/nginx.conf generado."
 
-    # ── 2. Certificado SSL auto-firmado ────────────────────────────────────
+    # ── 2. Certificado SSL auto-firmado ──────────────────────────────────────
     if [ ! -f "nginx/ssl/server.crt" ] || [ ! -f "nginx/ssl/server.key" ]; then
         info "Generando certificado SSL auto-firmado (válido 10 años)..."
         openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
@@ -127,11 +126,10 @@ NGINXEOF
         success "Certificado SSL ya existe, se reutiliza."
     fi
 
-    # ── 2. config.yml para Angular SSR ────────────────────────────────────
-    # ssrBaseUrl le indica al servidor Node (SSR) que use la red interna Docker
-    # en vez de la IP pública (inaccesible desde dentro del contenedor).
-    # Sin ssrBaseUrl → error 500 permanente.
-    # replaceRestUrl garantiza que las URLs internas no lleguen al navegador.
+    # ── 3. config.yml para Angular SSR ──────────────────────────────────────
+    # ssl: true  → el navegador usa HTTPS para contactar el backend
+    # ssrBaseUrl → el servidor Node (SSR) usa la red interna Docker
+    # Sin ssrBaseUrl → error 500 permanente (IP pública inaccesible desde contenedor)
     info "Generando dspace-ui/config.yml..."
     mkdir -p dspace-ui
     cat > dspace-ui/config.yml << EOF
@@ -140,7 +138,7 @@ NGINXEOF
 # Para cambiar la IP: edita .env y vuelve a ejecutar ./setup.sh
 
 rest:
-  ssl: false
+  ssl: true
   host: ${DSPACE_HOST_VAL}
   port: 443
   nameSpace: /server
@@ -151,11 +149,11 @@ ssr:
 EOF
     success "dspace-ui/config.yml generado con host: ${DSPACE_HOST_VAL}"
 
-    # ── 3. Descargar imágenes ──────────────────────────────────────────────
+    # ── 4. Descargar imágenes ─────────────────────────────────────────────────
     info "Descargando imágenes Docker (puede tardar según la conexión)..."
     $COMPOSE pull
 
-    # ── 4. Levantar ────────────────────────────────────────────────────────
+    # ── 5. Levantar ───────────────────────────────────────────────────────────
     info "Levantando contenedores..."
     $COMPOSE up -d
 
@@ -167,10 +165,9 @@ EOF
     echo -e "${YELLOW}Tiempos de arranque (primera vez):${NC}"
     echo -e "  PostgreSQL + Solr:  ~30 segundos"
     echo -e "  DSpace API:         5-10 minutos  (migración de base de datos)"
-    echo -e "  Angular UI:         15-25 minutos (compilación inicial)"
+    echo -e "  Angular UI:         25-40 minutos (compilación inicial en modo producción)"
     echo ""
     warn "El '502 Bad Gateway' en estos primeros minutos es NORMAL."
-    warn "Espera a que los logs muestren: 'Server listening on http://0.0.0.0:4000'"
     echo ""
     echo -e "Monitorear backend:  ${BLUE}docker logs dspace -f${NC}"
     echo -e "Monitorear frontend: ${BLUE}docker logs dspace-ui -f${NC}"
@@ -178,6 +175,52 @@ EOF
     echo -e "Cuando esté listo:   ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
     echo ""
     info "Siguiente paso → crea el administrador con:  ./setup.sh create-admin"
+    echo ""
+
+    # ── 6. Esperar y parchear config.json post-build ─────────────────────────
+    # CRÍTICO: El build de producción embebe ssl:false desde el config.yml.
+    # Una vez compilado, hay que parchear el config.json generado con Python
+    # para que el navegador use https:// al contactar el backend.
+    # Este bucle espera a que el build termine y aplica el parche automáticamente.
+    info "Esperando que el build de Angular termine para aplicar parche SSL..."
+    warn "Este proceso puede tardar 25-40 minutos la primera vez."
+    PARCHE_APLICADO=false
+    INTENTOS=0
+    while [ $INTENTOS -lt 120 ]; do
+        INTENTOS=$((INTENTOS + 1))
+        sleep 30
+        # Verificar si el build terminó (existe el config.json)
+        if docker exec dspace-ui test -f /app/dist/browser/assets/config.json 2>/dev/null; then
+            info "Build detectado. Aplicando parche SSL al config.json..."
+            docker exec dspace-ui python3 -c "
+import json
+with open('/app/dist/browser/assets/config.json','r') as f:
+    d = json.load(f)
+d['rest']['ssl'] = True
+d['rest']['baseUrl'] = 'https://${DSPACE_HOST_VAL}/server'
+with open('/app/dist/browser/assets/config.json','w') as f:
+    json.dump(d, f)
+print('Parche aplicado: ssl=True, baseUrl=https://${DSPACE_HOST_VAL}/server')
+" && docker restart dspace-ui
+            PARCHE_APLICADO=true
+            success "Parche SSL aplicado. DSpace reiniciando..."
+            echo ""
+            echo -e "Accede en: ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
+            break
+        fi
+    done
+
+    if [ "$PARCHE_APLICADO" = false ]; then
+        warn "El build tardó más de lo esperado. Aplica el parche manualmente cuando termine:"
+        echo ""
+        echo "  docker exec dspace-ui python3 -c \""
+        echo "  import json"
+        echo "  with open('/app/dist/browser/assets/config.json','r') as f: d=json.load(f)"
+        echo "  d['rest']['ssl']=True; d['rest']['baseUrl']='https://${DSPACE_HOST_VAL}/server'"
+        echo "  with open('/app/dist/browser/assets/config.json','w') as f: json.dump(d,f)\""
+        echo ""
+        echo "  docker restart dspace-ui"
+    fi
 }
 
 # =============================================================================
