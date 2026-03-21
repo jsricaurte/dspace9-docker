@@ -5,7 +5,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/root/DspacePruebaProduccion/dspace-patch.sh
+ExecStart=INSTALL_DIR/dspace-patch.sh
 RemainAfterExit=yes
 
 [Install]
