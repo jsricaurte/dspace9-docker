@@ -1,11 +1,6 @@
 ###############################################################################
-# DSpace 9 — Docker Compose PRODUCCION
+# DSpace 9 - Docker Compose PRODUCCION
 # Repositorio: https://github.com/jsricaurte/dspace9-docker
-#
-# ANTES DE USAR:
-#   1. cp .env.example .env && nano .env
-#   2. chmod +x setup.sh limpiar.sh
-#   3. ./setup.sh
 ###############################################################################
 
 networks:
@@ -114,8 +109,6 @@ services:
         if [ ! -f /app/dist/server/main.js ]; then
           npm run build:ssr
         fi
-        while [ ! -f /app/dist/browser/assets/config.json ]; do sleep 2; done
-        python3 -c "import json,os; f='/app/dist/browser/assets/config.json'; h=os.environ.get('DSPACE_REST_HOST','localhost'); d=json.load(open(f)); d['rest']['ssl']=True; d['rest']['baseUrl']='https://'+h+'/server'; json.dump(d,open(f,'w')); print('Parche OK ssl=True')"
         NODE_ENV=production node /app/dist/server/main
     environment:
       DSPACE_UI_SSL:         'false'
