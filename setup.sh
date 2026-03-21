@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  setup.sh Ã¢ÂÂ DSpace 9 con Docker Compose
+#  setup.sh ÃÂ¢ÃÂÃÂ DSpace 9 con Docker Compose
 #  https://github.com/jsricaurte/dspace9-docker
 #
 #  Uso:
-#    ./setup.sh                Ã¢ÂÂ instala y levanta todo
-#    ./setup.sh create-admin   Ã¢ÂÂ crea la cuenta de administrador
-#    ./setup.sh status         Ã¢ÂÂ estado de los contenedores
-#    ./setup.sh logs           Ã¢ÂÂ logs en tiempo real (Ctrl+C para salir)
-#    ./setup.sh stop           Ã¢ÂÂ detiene contenedores (datos se conservan)
-#    ./setup.sh restart        Ã¢ÂÂ reinicia contenedores
-#    ./setup.sh reindex        Ã¢ÂÂ re-indexa contenido en Solr
+#    ./setup.sh                ÃÂ¢ÃÂÃÂ instala y levanta todo
+#    ./setup.sh create-admin   ÃÂ¢ÃÂÃÂ crea la cuenta de administrador
+#    ./setup.sh status         ÃÂ¢ÃÂÃÂ estado de los contenedores
+#    ./setup.sh logs           ÃÂ¢ÃÂÃÂ logs en tiempo real (Ctrl+C para salir)
+#    ./setup.sh stop           ÃÂ¢ÃÂÃÂ detiene contenedores (datos se conservan)
+#    ./setup.sh restart        ÃÂ¢ÃÂÃÂ reinicia contenedores
+#    ./setup.sh reindex        ÃÂ¢ÃÂÃÂ re-indexa contenido en Solr
 #
 #  Para limpiar TODO y empezar desde cero: ./limpiar.sh
 # =============================================================================
@@ -24,7 +24,7 @@ info()    { echo -e "${BLUE}[INFO]${NC}   $1"; }
 success() { echo -e "${GREEN}[OK]${NC}     $1"; }
 warn()    { echo -e "${YELLOW}[AVISO]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC}  $1"; exit 1; }
-titulo()  { echo -e "\n${BOLD}Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ $1 Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ${NC}\n"; }
+titulo()  { echo -e "\n${BOLD}ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ $1 ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ${NC}\n"; }
 
 COMPOSE="docker compose"
 
@@ -33,13 +33,13 @@ COMPOSE="docker compose"
 # =============================================================================
 check_requisitos() {
     command -v docker >/dev/null 2>&1 \
-        || error "Docker no estÃÂ¡ instalado. Sigue la guÃÂ­a: 00-instalar-docker.md"
+        || error "Docker no estÃÂÃÂ¡ instalado. Sigue la guÃÂÃÂ­a: 00-instalar-docker.md"
 
     docker compose version >/dev/null 2>&1 \
-        || error "El plugin 'docker compose' no estÃÂ¡ instalado."
+        || error "El plugin 'docker compose' no estÃÂÃÂ¡ instalado."
 
     [ -f ".env" ] \
-        || error "Falta el archivo .env Ã¢ÂÂ ejecuta: cp .env.example .env && nano .env"
+        || error "Falta el archivo .env ÃÂ¢ÃÂÃÂ ejecuta: cp .env.example .env && nano .env"
 
     grep -q "CAMBIA_" .env \
         && error "Edita el .env antes de continuar. Reemplaza los valores CAMBIA_... por los tuyos."
@@ -48,7 +48,7 @@ check_requisitos() {
 }
 
 # =============================================================================
-# INSTALACIÃÂN
+# INSTALACIÃÂÃÂN
 # =============================================================================
 do_install() {
     titulo "Instalando DSpace 9"
@@ -56,9 +56,9 @@ do_install() {
 
     DSPACE_HOST_VAL=$(grep "^DSPACE_HOST=" .env | cut -d= -f2 | tr -d ' ')
 
-    # Ã¢ÂÂÃ¢ÂÂ 1. Generar nginx/nginx.conf Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ 1. Generar nginx/nginx.conf ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     # El setup.sh genera este archivo directamente para garantizar que
-    # siempre estÃÂ© en la ubicaciÃÂ³n correcta sin depender del repo descargado.
+    # siempre estÃÂÃÂ© en la ubicaciÃÂÃÂ³n correcta sin depender del repo descargado.
     info "Generando nginx/nginx.conf..."
     mkdir -p nginx/ssl
     cat > nginx/nginx.conf << 'NGINXEOF'
@@ -109,9 +109,9 @@ http {
 NGINXEOF
     success "nginx/nginx.conf generado."
 
-    # Ã¢ÂÂÃ¢ÂÂ 2. Certificado SSL auto-firmado Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ 2. Certificado SSL auto-firmado ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     if [ ! -f "nginx/ssl/server.crt" ] || [ ! -f "nginx/ssl/server.key" ]; then
-        info "Generando certificado SSL auto-firmado (vÃÂ¡lido 10 aÃÂ±os)..."
+        info "Generando certificado SSL auto-firmado (vÃÂÃÂ¡lido 10 aÃÂÃÂ±os)..."
         openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
             -keyout nginx/ssl/server.key \
             -out    nginx/ssl/server.crt \
@@ -126,15 +126,15 @@ NGINXEOF
         success "Certificado SSL ya existe, se reutiliza."
     fi
 
-    # Ã¢ÂÂÃ¢ÂÂ 3. config.yml para Angular SSR Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
-    # ssl: true  Ã¢ÂÂ el navegador usa HTTPS para contactar el backend
-    # ssrBaseUrl Ã¢ÂÂ el servidor Node (SSR) usa la red interna Docker
-    # Sin ssrBaseUrl Ã¢ÂÂ error 500 permanente (IP pÃÂºblica inaccesible desde contenedor)
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ 3. config.yml para Angular SSR ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+    # ssl: true  ÃÂ¢ÃÂÃÂ el navegador usa HTTPS para contactar el backend
+    # ssrBaseUrl ÃÂ¢ÃÂÃÂ el servidor Node (SSR) usa la red interna Docker
+    # Sin ssrBaseUrl ÃÂ¢ÃÂÃÂ error 500 permanente (IP pÃÂÃÂºblica inaccesible desde contenedor)
     info "Generando dspace-ui/config.yml..."
     mkdir -p dspace-ui
     cat > dspace-ui/config.yml << EOF
-# config.yml Ã¢ÂÂ DSpace Angular UI
-# Generado automÃÂ¡ticamente por setup.sh Ã¢ÂÂ no editar a mano.
+# config.yml ÃÂ¢ÃÂÃÂ DSpace Angular UI
+# Generado automÃÂÃÂ¡ticamente por setup.sh ÃÂ¢ÃÂÃÂ no editar a mano.
 # Para cambiar la IP: edita .env y vuelve a ejecutar ./setup.sh
 
 rest:
@@ -149,32 +149,32 @@ ssr:
 EOF
     success "dspace-ui/config.yml generado con host: ${DSPACE_HOST_VAL}"
 
-    # Ã¢ÂÂÃ¢ÂÂ 4. Descargar imÃÂ¡genes Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
-    info "Descargando imÃÂ¡genes Docker (puede tardar segÃÂºn la conexiÃÂ³n)..."
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ 4. Descargar imÃÂÃÂ¡genes ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+    info "Descargando imÃÂÃÂ¡genes Docker (puede tardar segÃÂÃÂºn la conexiÃÂÃÂ³n)..."
     $COMPOSE pull
 
-    # Ã¢ÂÂÃ¢ÂÂ 5. Levantar Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+    # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ 5. Levantar ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
     info "Levantando contenedores..."
     $COMPOSE up -d
 
     echo ""
-    echo -e "${BOLD}${GREEN}Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ${NC}"
-    echo -e "${BOLD}${GREEN}Ã¢ÂÂ   DSpace 9 iniciando...                      Ã¢ÂÂ${NC}"
-    echo -e "${BOLD}${GREEN}Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ${NC}"
+    echo -e "${BOLD}${GREEN}ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ${NC}"
+    echo -e "${BOLD}${GREEN}ÃÂ¢ÃÂÃÂ   DSpace 9 iniciando...                      ÃÂ¢ÃÂÃÂ${NC}"
+    echo -e "${BOLD}${GREEN}ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ${NC}"
     echo ""
     echo -e "${YELLOW}Tiempos de arranque (primera vez):${NC}"
     echo -e "  PostgreSQL + Solr:  ~30 segundos"
-    echo -e "  DSpace API:         5-10 minutos  (migraciÃÂ³n de base de datos)"
-    echo -e "  Angular UI:         25-40 minutos (compilaciÃÂ³n inicial en modo producciÃÂ³n)"
+    echo -e "  DSpace API:         5-10 minutos  (migraciÃÂÃÂ³n de base de datos)"
+    echo -e "  Angular UI:         25-40 minutos (compilaciÃÂÃÂ³n inicial en modo producciÃÂÃÂ³n)"
     echo ""
     warn "El '502 Bad Gateway' en estos primeros minutos es NORMAL."
     echo ""
     echo -e "Monitorear backend:  ${BLUE}docker logs dspace -f${NC}"
     echo -e "Monitorear frontend: ${BLUE}docker logs dspace-ui -f${NC}"
     echo ""
-    echo -e "Cuando estÃÂ© listo:   ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
+    echo -e "Cuando estÃÂÃÂ© listo:   ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
     echo ""
-    info "Siguiente paso Ã¢ÂÂ crea el administrador con:  ./setup.sh create-admin"
+    info "Siguiente paso ÃÂ¢ÃÂÃÂ crea el administrador con:  ./setup.sh create-admin"
     echo ""
 
   # -- 6. Instalar servicio systemd para parches post-reinicio --
@@ -196,19 +196,19 @@ do_create_admin() {
 
     docker ps --filter "name=^dspace$" --filter "status=running" --format "{{.Names}}" \
         | grep -q "^dspace$" \
-        || error "El contenedor 'dspace' no estÃÂ¡ corriendo. Ejecuta primero: ./setup.sh"
+        || error "El contenedor 'dspace' no estÃÂÃÂ¡ corriendo. Ejecuta primero: ./setup.sh"
 
     echo -e "Ingresa los datos del administrador:\n"
     read -rp  "  Email       : " ADMIN_EMAIL
     read -rp  "  Nombre      : " ADMIN_FIRST
     read -rp  "  Apellido    : " ADMIN_LAST
-    read -rsp "  ContraseÃÂ±a  : " ADMIN_PASS;  echo ""
+    read -rsp "  ContraseÃÂÃÂ±a  : " ADMIN_PASS;  echo ""
     read -rsp "  Repite clave: " ADMIN_PASS2; echo ""
 
     [ "$ADMIN_PASS" = "$ADMIN_PASS2" ] \
-        || error "Las contraseÃÂ±as no coinciden."
+        || error "Las contraseÃÂÃÂ±as no coinciden."
     [ ${#ADMIN_PASS} -ge 8 ] \
-        || error "La contraseÃÂ±a debe tener al menos 8 caracteres."
+        || error "La contraseÃÂÃÂ±a debe tener al menos 8 caracteres."
 
     info "Creando administrador..."
     docker exec dspace /dspace/bin/dspace create-administrator \
@@ -231,10 +231,10 @@ do_reindex() {
     titulo "Re-indexando contenido en Solr"
     docker ps --filter "name=^dspace$" --filter "status=running" --format "{{.Names}}" \
         | grep -q "^dspace$" \
-        || error "El contenedor 'dspace' no estÃÂ¡ corriendo."
+        || error "El contenedor 'dspace' no estÃÂÃÂ¡ corriendo."
     info "Puede tardar varios minutos..."
     docker exec dspace /dspace/bin/dspace index-discovery -b
-    success "Re-indexaciÃÂ³n completada."
+    success "Re-indexaciÃÂÃÂ³n completada."
 }
 
 # =============================================================================
