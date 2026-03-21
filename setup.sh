@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  setup.sh — DSpace 9 con Docker Compose
+#  setup.sh â DSpace 9 con Docker Compose
 #  https://github.com/jsricaurte/dspace9-docker
 #
 #  Uso:
-#    ./setup.sh                → instala y levanta todo
-#    ./setup.sh create-admin   → crea la cuenta de administrador
-#    ./setup.sh status         → estado de los contenedores
-#    ./setup.sh logs           → logs en tiempo real (Ctrl+C para salir)
-#    ./setup.sh stop           → detiene contenedores (datos se conservan)
-#    ./setup.sh restart        → reinicia contenedores
-#    ./setup.sh reindex        → re-indexa contenido en Solr
+#    ./setup.sh                â instala y levanta todo
+#    ./setup.sh create-admin   â crea la cuenta de administrador
+#    ./setup.sh status         â estado de los contenedores
+#    ./setup.sh logs           â logs en tiempo real (Ctrl+C para salir)
+#    ./setup.sh stop           â detiene contenedores (datos se conservan)
+#    ./setup.sh restart        â reinicia contenedores
+#    ./setup.sh reindex        â re-indexa contenido en Solr
 #
 #  Para limpiar TODO y empezar desde cero: ./limpiar.sh
 # =============================================================================
@@ -24,7 +24,7 @@ info()    { echo -e "${BLUE}[INFO]${NC}   $1"; }
 success() { echo -e "${GREEN}[OK]${NC}     $1"; }
 warn()    { echo -e "${YELLOW}[AVISO]${NC}  $1"; }
 error()   { echo -e "${RED}[ERROR]${NC}  $1"; exit 1; }
-titulo()  { echo -e "\n${BOLD}═══ $1 ═══${NC}\n"; }
+titulo()  { echo -e "\n${BOLD}âââ $1 âââ${NC}\n"; }
 
 COMPOSE="docker compose"
 
@@ -33,13 +33,13 @@ COMPOSE="docker compose"
 # =============================================================================
 check_requisitos() {
     command -v docker >/dev/null 2>&1 \
-        || error "Docker no está instalado. Sigue la guía: 00-instalar-docker.md"
+        || error "Docker no estÃ¡ instalado. Sigue la guÃ­a: 00-instalar-docker.md"
 
     docker compose version >/dev/null 2>&1 \
-        || error "El plugin 'docker compose' no está instalado."
+        || error "El plugin 'docker compose' no estÃ¡ instalado."
 
     [ -f ".env" ] \
-        || error "Falta el archivo .env — ejecuta: cp .env.example .env && nano .env"
+        || error "Falta el archivo .env â ejecuta: cp .env.example .env && nano .env"
 
     grep -q "CAMBIA_" .env \
         && error "Edita el .env antes de continuar. Reemplaza los valores CAMBIA_... por los tuyos."
@@ -48,7 +48,7 @@ check_requisitos() {
 }
 
 # =============================================================================
-# INSTALACIÓN
+# INSTALACIÃN
 # =============================================================================
 do_install() {
     titulo "Instalando DSpace 9"
@@ -56,9 +56,9 @@ do_install() {
 
     DSPACE_HOST_VAL=$(grep "^DSPACE_HOST=" .env | cut -d= -f2 | tr -d ' ')
 
-    # ── 1. Generar nginx/nginx.conf ──────────────────────────────────────────
+    # ââ 1. Generar nginx/nginx.conf ââââââââââââââââââââââââââââââââââââââââââ
     # El setup.sh genera este archivo directamente para garantizar que
-    # siempre esté en la ubicación correcta sin depender del repo descargado.
+    # siempre estÃ© en la ubicaciÃ³n correcta sin depender del repo descargado.
     info "Generando nginx/nginx.conf..."
     mkdir -p nginx/ssl
     cat > nginx/nginx.conf << 'NGINXEOF'
@@ -109,9 +109,9 @@ http {
 NGINXEOF
     success "nginx/nginx.conf generado."
 
-    # ── 2. Certificado SSL auto-firmado ──────────────────────────────────────
+    # ââ 2. Certificado SSL auto-firmado ââââââââââââââââââââââââââââââââââââââ
     if [ ! -f "nginx/ssl/server.crt" ] || [ ! -f "nginx/ssl/server.key" ]; then
-        info "Generando certificado SSL auto-firmado (válido 10 años)..."
+        info "Generando certificado SSL auto-firmado (vÃ¡lido 10 aÃ±os)..."
         openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
             -keyout nginx/ssl/server.key \
             -out    nginx/ssl/server.crt \
@@ -126,15 +126,15 @@ NGINXEOF
         success "Certificado SSL ya existe, se reutiliza."
     fi
 
-    # ── 3. config.yml para Angular SSR ──────────────────────────────────────
-    # ssl: true  → el navegador usa HTTPS para contactar el backend
-    # ssrBaseUrl → el servidor Node (SSR) usa la red interna Docker
-    # Sin ssrBaseUrl → error 500 permanente (IP pública inaccesible desde contenedor)
+    # ââ 3. config.yml para Angular SSR ââââââââââââââââââââââââââââââââââââââ
+    # ssl: true  â el navegador usa HTTPS para contactar el backend
+    # ssrBaseUrl â el servidor Node (SSR) usa la red interna Docker
+    # Sin ssrBaseUrl â error 500 permanente (IP pÃºblica inaccesible desde contenedor)
     info "Generando dspace-ui/config.yml..."
     mkdir -p dspace-ui
     cat > dspace-ui/config.yml << EOF
-# config.yml — DSpace Angular UI
-# Generado automáticamente por setup.sh — no editar a mano.
+# config.yml â DSpace Angular UI
+# Generado automÃ¡ticamente por setup.sh â no editar a mano.
 # Para cambiar la IP: edita .env y vuelve a ejecutar ./setup.sh
 
 rest:
@@ -149,39 +149,39 @@ ssr:
 EOF
     success "dspace-ui/config.yml generado con host: ${DSPACE_HOST_VAL}"
 
-    # ── 4. Descargar imágenes ─────────────────────────────────────────────────
-    info "Descargando imágenes Docker (puede tardar según la conexión)..."
+    # ââ 4. Descargar imÃ¡genes âââââââââââââââââââââââââââââââââââââââââââââââââ
+    info "Descargando imÃ¡genes Docker (puede tardar segÃºn la conexiÃ³n)..."
     $COMPOSE pull
 
-    # ── 5. Levantar ───────────────────────────────────────────────────────────
+    # ââ 5. Levantar âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
     info "Levantando contenedores..."
     $COMPOSE up -d
 
     echo ""
-    echo -e "${BOLD}${GREEN}╔══════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${GREEN}║   DSpace 9 iniciando...                      ║${NC}"
-    echo -e "${BOLD}${GREEN}╚══════════════════════════════════════════════╝${NC}"
+    echo -e "${BOLD}${GREEN}ââââââââââââââââââââââââââââââââââââââââââââââââ${NC}"
+    echo -e "${BOLD}${GREEN}â   DSpace 9 iniciando...                      â${NC}"
+    echo -e "${BOLD}${GREEN}ââââââââââââââââââââââââââââââââââââââââââââââââ${NC}"
     echo ""
     echo -e "${YELLOW}Tiempos de arranque (primera vez):${NC}"
     echo -e "  PostgreSQL + Solr:  ~30 segundos"
-    echo -e "  DSpace API:         5-10 minutos  (migración de base de datos)"
-    echo -e "  Angular UI:         25-40 minutos (compilación inicial en modo producción)"
+    echo -e "  DSpace API:         5-10 minutos  (migraciÃ³n de base de datos)"
+    echo -e "  Angular UI:         25-40 minutos (compilaciÃ³n inicial en modo producciÃ³n)"
     echo ""
     warn "El '502 Bad Gateway' en estos primeros minutos es NORMAL."
     echo ""
     echo -e "Monitorear backend:  ${BLUE}docker logs dspace -f${NC}"
     echo -e "Monitorear frontend: ${BLUE}docker logs dspace-ui -f${NC}"
     echo ""
-    echo -e "Cuando esté listo:   ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
+    echo -e "Cuando estÃ© listo:   ${GREEN}https://${DSPACE_HOST_VAL}${NC}"
     echo ""
-    info "Siguiente paso → crea el administrador con:  ./setup.sh create-admin"
+    info "Siguiente paso â crea el administrador con:  ./setup.sh create-admin"
     echo ""
 
-    # ── 6. Esperar y parchear config.json post-build ─────────────────────────
-    # CRÍTICO: El build de producción embebe ssl:false desde el config.yml.
+    # ââ 6. Esperar y parchear config.json post-build âââââââââââââââââââââââââ
+    # CRÃTICO: El build de producciÃ³n embebe ssl:false desde el config.yml.
     # Una vez compilado, hay que parchear el config.json generado con Python
     # para que el navegador use https:// al contactar el backend.
-    # Este bucle espera a que el build termine y aplica el parche automáticamente.
+    # Este bucle espera a que el build termine y aplica el parche automÃ¡ticamente.
     info "Esperando que el build de Angular termine para aplicar parche SSL..."
     warn "Este proceso puede tardar 25-40 minutos la primera vez."
     PARCHE_APLICADO=false
@@ -189,7 +189,7 @@ EOF
     while [ $INTENTOS -lt 120 ]; do
         INTENTOS=$((INTENTOS + 1))
         sleep 30
-        # Verificar si el build terminó (existe el config.json)
+        # Verificar si el build terminÃ³ (existe el config.json)
         if docker exec dspace-ui test -f /app/dist/browser/assets/config.json 2>/dev/null; then
             info "Build detectado. Aplicando parche SSL al config.json..."
             docker exec dspace-ui python3 -c "
@@ -211,7 +211,7 @@ print('Parche aplicado: ssl=True, baseUrl=https://${DSPACE_HOST_VAL}/server')
     done
 
     if [ "$PARCHE_APLICADO" = false ]; then
-        warn "El build tardó más de lo esperado. Aplica el parche manualmente cuando termine:"
+        warn "El build tardÃ³ mÃ¡s de lo esperado. Aplica el parche manualmente cuando termine:"
         echo ""
         echo "  docker exec dspace-ui python3 -c \""
         echo "  import json"
@@ -231,19 +231,19 @@ do_create_admin() {
 
     docker ps --filter "name=^dspace$" --filter "status=running" --format "{{.Names}}" \
         | grep -q "^dspace$" \
-        || error "El contenedor 'dspace' no está corriendo. Ejecuta primero: ./setup.sh"
+        || error "El contenedor 'dspace' no estÃ¡ corriendo. Ejecuta primero: ./setup.sh"
 
     echo -e "Ingresa los datos del administrador:\n"
     read -rp  "  Email       : " ADMIN_EMAIL
     read -rp  "  Nombre      : " ADMIN_FIRST
     read -rp  "  Apellido    : " ADMIN_LAST
-    read -rsp "  Contraseña  : " ADMIN_PASS;  echo ""
+    read -rsp "  ContraseÃ±a  : " ADMIN_PASS;  echo ""
     read -rsp "  Repite clave: " ADMIN_PASS2; echo ""
 
     [ "$ADMIN_PASS" = "$ADMIN_PASS2" ] \
-        || error "Las contraseñas no coinciden."
+        || error "Las contraseÃ±as no coinciden."
     [ ${#ADMIN_PASS} -ge 8 ] \
-        || error "La contraseña debe tener al menos 8 caracteres."
+        || error "La contraseÃ±a debe tener al menos 8 caracteres."
 
     info "Creando administrador..."
     docker exec dspace /dspace/bin/dspace create-administrator \
@@ -266,10 +266,10 @@ do_reindex() {
     titulo "Re-indexando contenido en Solr"
     docker ps --filter "name=^dspace$" --filter "status=running" --format "{{.Names}}" \
         | grep -q "^dspace$" \
-        || error "El contenedor 'dspace' no está corriendo."
+        || error "El contenedor 'dspace' no estÃ¡ corriendo."
     info "Puede tardar varios minutos..."
     docker exec dspace /dspace/bin/dspace index-discovery -b
-    success "Re-indexación completada."
+    success "Re-indexaciÃ³n completada."
 }
 
 # =============================================================================
@@ -307,3 +307,14 @@ case "${1:-install}" in
         echo ""
         ;;
 esac
+
+install_systemd_patch() {
+  INSTALL_DIR="$(pwd)"
+  CURRENT_USER="$(whoami)"
+  cp dspace-patch.sh "$INSTALL_DIR/dspace-patch.sh"
+  chmod +x "$INSTALL_DIR/dspace-patch.sh"
+  sed "s|INSTALL_DIR|$INSTALL_DIR|g; s|Type=oneshot|Type=oneshot\nUser=$CURRENT_USER|g" dspace-patch.service | sudo tee /etc/systemd/system/dspace-patch.service > /dev/null
+  sudo systemctl daemon-reload
+  sudo systemctl enable dspace-patch.service
+  echo "Servicio systemd instalado y habilitado."
+}
