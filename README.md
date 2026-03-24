@@ -1,69 +1,71 @@
-# DSpace 9 — Docker Compose for Production
+# DSpace 9 — Docker Compose para Producción
 
-> ✅ **Battle-tested in a real university environment.**
-> Deployed on Ubuntu 24.04 · 8 cores · 8 GB RAM.
-> Every error we hit along the way is documented — along with the exact fix.
+> ✅ **Validado en un entorno universitario real.**
+> Desplegado en Ubuntu 24.04 · 8 núcleos · 8 GB RAM.
+> Cada error que encontramos está documentado — con su solución exacta.
 
----
-
-## What is this?
-
-[DSpace](https://dspace.org/) is one of the most widely used open-source platforms for building and managing institutional digital repositories. Universities, libraries, and research centers around the world use it to publish and preserve their academic output.
-
-This repository gives you a **production-ready Docker Compose setup for DSpace 9** — something that doesn't officially exist yet. The Docker images provided by the DSpace team are designed for local development and testing, not for running on a real server with a public IP, SSL, and Nginx.
-
-We built this the hard way, hit every wall you can imagine, and documented all of it so you don't have to.
+> 🇬🇧 [Read this in English](README.en.md)
 
 ---
 
-## Why Docker instead of a traditional install?
+## ¿Qué es esto?
 
-- **Portability** — move your entire repository between servers with a single command
-- **Backups & migrations** — what used to take days now takes minutes
-- **Multiple instances on the same machine** — run several DSpace environments side by side with different Nginx configs, no conflicts
-- **Rollbacks** — if something breaks, you're back up in seconds
-- **Reproducibility** — the same setup works on any Linux server
+[DSpace](https://dspace.org/) es una de las plataformas open source más usadas en el mundo para crear y gestionar repositorios digitales institucionales. Universidades, bibliotecas y centros de investigación lo usan para publicar y preservar su producción académica.
+
+Este repositorio te da un **setup de Docker Compose listo para producción con DSpace 9** — algo que oficialmente no existe. Las imágenes Docker que provee el equipo de DSpace están pensadas para desarrollo y pruebas locales, no para correr en un servidor real con IP pública, SSL y Nginx.
+
+Lo construimos a las malas, chocamos contra todas las paredes posibles y documentamos todo para que tú no tengas que hacerlo.
 
 ---
 
-## Architecture
+## ¿Por qué Docker y no una instalación tradicional?
+
+- **Portabilidad total** — mueve todo el repositorio entre servidores con un solo comando
+- **Backups y migraciones** — lo que antes tomaba días, ahora son minutos
+- **Múltiples instancias en la misma máquina** — corre varios entornos de DSpace en paralelo con diferentes configuraciones de Nginx, sin que se choquen
+- **Rollbacks** — si algo falla, vuelves atrás en segundos
+- **Reproducibilidad** — el mismo setup funciona en cualquier servidor Linux
+
+---
+
+## Arquitectura
 
 ```
-User's browser
-      │
-  [NGINX :80/:443]
-  ├── /server ──────► [dspace :8080]     REST API (Spring Boot + Java)
-  └── /       ──────► [dspace-ui :4000]  Angular Frontend (SSR)
-                             │
-              ┌──────────────┘
-              │
-  [dspacesolr :8983]        [dspacedb :5432]
-   Apache Solr               PostgreSQL 16
+Navegador del usuario
+        │
+   [NGINX :80/:443]
+   ├── /server ──────► [dspace :8080]     REST API (Spring Boot + Java)
+   └── /       ──────► [dspace-ui :4000]  Frontend Angular (SSR)
+                              │
+               ┌──────────────┘
+               │
+   [dspacesolr :8983]        [dspacedb :5432]
+    Apache Solr               PostgreSQL 16
 ```
 
 ---
 
-## Server Requirements
+## Requisitos del servidor
 
-| Resource | Minimum | Tested on |
-|----------|---------|-----------|
-| OS | Ubuntu 22.04 or 24.04 LTS (no GUI) | Ubuntu 24.04 LTS |
-| CPU | 2 cores | 8 cores |
+| Recurso | Mínimo | Probado con |
+|---------|--------|-------------|
+| SO | Ubuntu 22.04 o 24.04 LTS sin GUI | Ubuntu 24.04 LTS |
+| CPU | 2 núcleos | 8 núcleos |
 | RAM | 6 GB | 8 GB |
-| Disk | 40 GB | 64 GB |
+| Disco | 40 GB | 64 GB |
 
 ---
 
-## Quick Install (if Docker is already installed)
+## Instalación rápida (si ya tienes Docker)
 
-### Option A — With Git
+### Opción A — Con Git
 
 ```bash
 git clone https://github.com/jsricaurte/dspace9-docker.git ~/dspace9
 cd ~/dspace9
 ```
 
-### Option B — Without Git (wget only)
+### Opción B — Sin Git (solo wget)
 
 ```bash
 cd ~
@@ -73,30 +75,30 @@ mv dspace9-docker-main dspace9
 cd dspace9
 ```
 
-> No `wget` or `unzip`? Run: `sudo apt install -y wget unzip`
+> ¿No tienes `wget` ni `unzip`? Ejecuta: `sudo apt install -y wget unzip`
 
 ---
 
-### Common steps (both options)
+### Pasos comunes (ambas opciones)
 
 ```bash
 cp .env.example .env
-nano .env        # ← set your IP, password and repository name
+nano .env        # ← configura tu IP, contraseña y nombre del repositorio
 
 chmod +x setup.sh limpiar.sh
 
-./setup.sh       # Installs everything — sit back, this takes ~40 min the first time
+./setup.sh       # Instala todo — la primera vez tarda ~40 min
 ```
 
-The `setup.sh` script will:
-1. Generate Nginx config and SSL certificate
-2. Pull Docker images
-3. Start all containers
-4. Stream Angular build logs live in your terminal
-5. Once the build finishes, ask for your `sudo` password to set up the systemd patch service
-6. Apply all patches automatically
+El script `setup.sh`:
+1. Genera la configuración de Nginx y el certificado SSL
+2. Descarga las imágenes Docker
+3. Levanta todos los contenedores
+4. Muestra los logs de Angular en vivo en tu terminal
+5. Cuando el build termina, pide tu contraseña `sudo` para instalar el servicio systemd
+6. Aplica todos los parches automáticamente
 
-After everything is up, create your admin account:
+Cuando todo esté listo, crea tu cuenta de administrador:
 
 ```bash
 ./setup.sh create-admin
@@ -104,88 +106,88 @@ After everything is up, create your admin account:
 
 ---
 
-## Full install from scratch (no Docker yet)
+## Instalación completa desde cero (sin Docker)
 
-Follow the guides in order:
+Sigue las guías en orden:
 
-| # | Guide | Contents |
-|---|-------|----------|
-| 1 | [00-instalar-docker.md](00-instalar-docker.md) | Install Ubuntu Server + Docker + Docker Compose |
-| 2 | [01-instalar-dspace.md](01-instalar-dspace.md) | Configure and install DSpace 9 step by step |
-| 3 | [ERRORES.md](ERRORES.md) | 12+ real production errors with causes and exact fixes |
+| # | Guía | Contenido |
+|---|------|-----------|
+| 1 | [00-instalar-docker.md](00-instalar-docker.md) | Instalar Ubuntu Server + Docker + Docker Compose |
+| 2 | [01-instalar-dspace.md](01-instalar-dspace.md) | Configurar e instalar DSpace 9 paso a paso |
+| 3 | [ERRORES.md](ERRORES.md) | 12+ errores reales de producción con causas y soluciones exactas |
 
 ---
 
-## Repository structure
+## Estructura del repositorio
 
 ```
 dspace9-docker/
-├── docker-compose.yml      ← Orchestrates all 5 containers
-├── .env.example            ← Configuration template (copy to .env)
-├── setup.sh                ← Main install & management script
-├── limpiar.sh              ← Full cleanup (⚠ deletes all data)
-├── dspace-patch.sh         ← Post-boot patch script (SSL + i18n)
-├── dspace-patch.service    ← systemd service for permanent patches
+├── docker-compose.yml      ← Orquesta los 5 contenedores
+├── .env.example            ← Plantilla de configuración (copiar a .env)
+├── setup.sh                ← Script principal de instalación y gestión
+├── limpiar.sh              ← Limpieza total (⚠ borra todos los datos)
+├── dspace-patch.sh         ← Script de parches post-arranque (SSL + i18n)
+├── dspace-patch.service    ← Servicio systemd para parches permanentes
 ├── nginx/
-│   ├── nginx.conf          ← Reverse proxy with SSL
-│   └── ssl/                ← Certificates generated by setup.sh
+│   ├── nginx.conf          ← Proxy inverso con SSL
+│   └── ssl/                ← Certificados generados por setup.sh
 ├── dspace-ui/
-│   └── config.yml          ← Generated by setup.sh (don't edit manually)
-├── 00-instalar-docker.md   ← Guide: install Ubuntu + Docker
-├── 01-instalar-dspace.md   ← Guide: install DSpace step by step
-└── ERRORES.md              ← 12+ real errors with solutions
+│   └── config.yml          ← Generado por setup.sh (no editar a mano)
+├── 00-instalar-docker.md   ← Guía: instalar Ubuntu + Docker
+├── 01-instalar-dspace.md   ← Guía: instalar DSpace paso a paso
+└── ERRORES.md              ← 12+ errores reales con soluciones
 ```
 
 ---
 
-## Available commands
+## Comandos disponibles
 
 ```bash
-./setup.sh               # Install and start DSpace
-./setup.sh create-admin  # Create administrator account
-./setup.sh status        # Container status
-./setup.sh logs          # Live logs (Ctrl+C to exit)
-./setup.sh stop          # Stop containers (data is preserved)
-./setup.sh restart       # Restart containers
-./setup.sh reindex       # Re-index content in Solr
-./limpiar.sh             # ⚠ Wipe everything — only use to start fresh
+./setup.sh               # Instala y levanta DSpace
+./setup.sh create-admin  # Crear cuenta de administrador
+./setup.sh status        # Estado de los contenedores
+./setup.sh logs          # Logs en tiempo real (Ctrl+C para salir)
+./setup.sh stop          # Apagar (datos se conservan)
+./setup.sh restart       # Reiniciar contenedores
+./setup.sh reindex       # Re-indexar contenido en Solr
+./limpiar.sh             # ⚠ Borra TODO — solo para empezar desde cero
 ```
 
 ---
 
-## Startup times
+## Tiempos de arranque
 
-| Service | First time | After that |
-|---------|-----------|------------|
-| PostgreSQL + Solr | ~30 sec | ~15 sec |
+| Servicio | Primera vez | Siguientes |
+|---------|------------|------------|
+| PostgreSQL + Solr | ~30 seg | ~15 seg |
 | DSpace REST API | 5–10 min | 1–2 min |
 | Angular UI | ~40 min (build) | 1–2 min |
 
-> **502 Bad Gateway** during the first startup is completely normal.
-> Just wait — the Angular build takes a while the first time.
-> Watch progress with: `docker logs dspace-ui -f`
+> El **502 Bad Gateway** en el primer arranque es completamente normal.
+> Espera a que el build de Angular termine.
+> Monitorea el progreso con: `docker logs dspace-ui -f`
 
 ---
 
-## Critical issues solved
+## Errores críticos resueltos
 
-| Error | Root cause | Fix |
-|-------|-----------|-----|
-| Spring Boot dies silently | Log4j2 + Spring Boot 3.5.x bug | Added `LOGGING_CONFIG` to compose |
-| Permanent 500 error | Angular SSR tries to reach public IP from inside the container | Set `ssrBaseUrl` in config.yml |
-| Permanent 502 error | `proxy_pass` missing `/server` at the end | Fixed nginx.conf |
-| `docker compose down` doesn't stop everything | `restart: unless-stopped` | Changed to proper restart policy |
-| Solr crashes with `cp` error | Official compose designed for source dev | Removed `cp` commands from entrypoint |
-| Internal network not trusted | Subnet not aligned with `proxies.trusted` | Fixed subnet to `172.23.0.0/24` |
-| Angular SSR rejects IP hostnames | Angular SSR security policy blocks non-domain hosts | SSR fallback to CSR + patch applied post-boot |
-| `config.json` always has `ssl: false` | Production build embeds the value at compile time | Python patch applied by systemd service after each boot |
-| i18n translations not loading | Build hash mismatch between Angular bundles | Patch copies i18n files with correct hashes at boot |
+| Error | Causa | Solución |
+|-------|-------|---------|
+| Spring Boot muere silenciosamente | Bug Log4j2 + Spring Boot 3.5.x | `LOGGING_CONFIG` en el compose |
+| Error 500 permanente | SSR de Angular intenta usar la IP pública desde dentro del contenedor | `ssrBaseUrl` en config.yml |
+| Error 502 permanente | `proxy_pass` sin `/server` al final | Corrección en nginx.conf |
+| `docker compose down` no para todo | Política de restart incorrecta | Ajustada en el compose |
+| Solr falla con error `cp` | El compose oficial está diseñado para desarrollo con código fuente | Entrypoint sin comandos `cp` |
+| Red interna no confiable | Subnet no alineada con `proxies.trusted` | Subnet fija `172.23.0.0/24` |
+| SSR de Angular rechaza IPs | Política de seguridad de Angular SSR bloquea hostnames que no son dominio | Fallback a CSR + parche post-arranque |
+| `config.json` siempre con `ssl: false` | El build de producción embebe el valor en tiempo de compilación | Parche Python aplicado por servicio systemd en cada arranque |
+| Traducciones i18n no cargan | Hash del build no coincide entre los bundles de Angular | El parche copia los archivos i18n con los hashes correctos al arrancar |
 
-Full details in [ERRORES.md](ERRORES.md).
+Ver detalles completos en [ERRORES.md](ERRORES.md).
 
 ---
 
-## Validated versions
+## Versiones validadas
 
 - **DSpace:** 9.3-SNAPSHOT (`dspace/dspace:dspace-9_x`)
 - **PostgreSQL:** 16 Alpine
@@ -195,19 +197,19 @@ Full details in [ERRORES.md](ERRORES.md).
 
 ---
 
-## Why does this repository exist?
+## ¿Por qué existe este repositorio?
 
-The official DSpace Docker setup is built for developers working with local source code — it was never designed to run production images straight from Docker Hub. There's no official documentation covering the real-world errors you hit when deploying on an actual server.
+El setup oficial de Docker de DSpace está pensado para desarrolladores trabajando con código fuente local — nunca fue diseñado para correr imágenes de producción directamente desde Docker Hub. No existe documentación oficial que cubra los errores reales que aparecen al desplegar en un servidor real.
 
-This repository exists because someone had to figure it out, document every failure, and share what actually worked. If it saves you a week of debugging, that's exactly the point.
-
----
-
-## Contributing
-
-Found an issue or have a fix to share? PRs are welcome.
-If this helped you deploy DSpace at your institution, consider leaving a ⭐ — it helps others find it.
+Este repositorio existe porque alguien tuvo que averiguarlo, documentar cada falla y compartir lo que realmente funcionó. Si te ahorra una semana de depuración, ese es exactamente el punto.
 
 ---
 
-*Made with stubbornness and too many late nights. — [@jsricaurte](https://github.com/jsricaurte)*
+## Contribuciones
+
+¿Encontraste un error o tienes una mejora? Los PRs son bienvenidos.
+Si esto te ayudó a desplegar DSpace en tu institución, deja una ⭐ — ayuda a que otros lo encuentren.
+
+---
+
+*Hecho a las malas, con tinto y sin dormir. — [@jsricaurte](https://github.com/jsricaurte)*
