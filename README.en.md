@@ -205,6 +205,18 @@ This repository exists because someone had to figure it out, document every fail
 
 ---
 
+
+## Known issues
+
+### Infinite loading loop when accepting the license (logged-in users only)
+
+After logging in and starting an item submission, DSpace may get stuck in an infinite loading loop when displaying the license agreement.
+
+**Cause:** Known bug in dspace-angular ([issue #3584](https://github.com/DSpace/dspace-angular/issues/3584)), more frequent on production instances than on development. No official fix as of April 2026.
+
+**Workaround:** Close the tab and navigate back to `/home`. The issue only happens when the user is authenticated. Without login, the flow works correctly.
+
+---
 ## Contributing
 
 Found an issue or have a fix to share? PRs are welcome.
