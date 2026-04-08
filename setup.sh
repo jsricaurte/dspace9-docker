@@ -161,13 +161,30 @@ EOF
     echo ""
 
     # -- 6. Esperar build de Angular y aplicar parches
-    info "Mostrando logs de Angular en vivo (el build tarda ~40 min la primera vez)..."
+    echo ""
+    echo -e "${BOLD}${YELLOW}"
+    echo "        ( ("
+    echo "         ) )"
+    echo "      ........"
+    echo "      |      |]"
+    echo "      \\      /"
+    echo "       \`----'"
+    echo -e "${NC}"
+    echo -e "${YELLOW}  El cafe esta listo. Ahora a esperar...            ${NC}"
+    echo -e "${YELLOW}  Angular UI tarda ~40 min en compilar.             ${NC}"
+    echo -e "${YELLOW}  El servidor NO se congelo. No cierres esto.       ${NC}"
+    echo -e "${YELLOW}  Pon musica, ve por mas tinto, o toma una siesta.  ${NC}"
+    echo ""
+    info "Logs de Angular en vivo (el progreso aparece aqui abajo)..."
     docker logs dspace-ui -f 2>/dev/null &
     LOGS_PID=$!
     until docker logs dspace-ui 2>/dev/null | grep -q "Listening at http://localhost:4000"; do
         sleep 10
     done
     kill $LOGS_PID 2>/dev/null || true
+    echo ""
+    echo -e "${GREEN}  Listo. Angular compilo. El cafe te supo bien.  ${NC}"
+    echo ""
     echo ""
     success "Build de Angular completado."
     echo ""
