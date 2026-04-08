@@ -205,6 +205,18 @@ Este repositorio existe porque alguien tuvo que averiguarlo, documentar cada fal
 
 ---
 
+
+## Problemas conocidos
+
+### Loop infinito al aceptar la licencia (solo cuando estas logueado)
+
+Al iniciar sesion y luego intentar subir un item, DSpace puede quedar en carga infinita al mostrar el contrato de licencia.
+
+**Causa:** Bug conocido en dspace-angular ([issue #3584](https://github.com/DSpace/dspace-angular/issues/3584)), mas frecuente en produccion que en desarrollo. Sin solucion oficial a la fecha (abril 2026).
+
+**Solucion temporal:** Cerrar la pestana y volver a entrar por la pagina de inicio (`/home`). El problema ocurre especificamente cuando el usuario esta autenticado. Sin login, el flujo funciona correctamente.
+
+---
 ## Contribuciones
 
 ¿Encontraste un error o tienes una mejora? Los PRs son bienvenidos.
