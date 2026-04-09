@@ -217,6 +217,16 @@ Al iniciar sesion y luego intentar subir un item, DSpace puede quedar en carga i
 **Solucion temporal:** Cerrar la pestana y volver a entrar por la pagina de inicio (`/home`). El problema ocurre especificamente cuando el usuario esta autenticado. Sin login, el flujo funciona correctamente.
 
 ---
+
+## Origen del proyecto
+
+Este repositorio nacio como una iniciativa **personal** — no institucional.
+
+Lo construi para resolver una necesidad real en [Unisabaneta](https://www.unisabaneta.edu.co/) y [Caequinos](https://www.caequinos.edu.co/), donde trabajo como Coordinador de Sistemas. Las instituciones reciben el resultado, pero la decision de hacerlo, documentarlo y abrirlo al publico fue completamente propia.
+
+Si te sirve, bienvenido. Si encuentras algo que mejorar, los PRs son bienvenidos.
+
+---
 ## Contribuciones
 
 ¿Encontraste un error o tienes una mejora? Los PRs son bienvenidos.
