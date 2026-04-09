@@ -217,6 +217,16 @@ After logging in and starting an item submission, DSpace may get stuck in an inf
 **Workaround:** Close the tab and navigate back to `/home`. The issue only happens when the user is authenticated. Without login, the flow works correctly.
 
 ---
+
+## Origin of this project
+
+This repository was born as a **personal initiative** — not an institutional one.
+
+I built it to solve a real need at [Unisabaneta](https://www.unisabaneta.edu.co/) and [Caequinos](https://www.caequinos.edu.co/), where I work as Systems Coordinator. The institutions receive the result, but the decision to build it, document it, and open it to the public was entirely my own.
+
+If it helps you, welcome. If you find something to improve, PRs are open.
+
+---
 ## Contributing
 
 Found an issue or have a fix to share? PRs are welcome.
